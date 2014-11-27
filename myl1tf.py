@@ -80,31 +80,6 @@ def l1tf_cvxopt(corr, alpha,period=0, psi=np.Infinity):
     return corr - D.T * res['x']
 
 
-def construct_seasonal_design_matrix_deprecated(n, period):
-    """
-    :param n: number of data points in time series
-    :param period: period of seasonality
-    :return:
-    """
-
-    num_cycles = int(n)/int(period)
-    num = n + period
-    identity_n = spmatrix(1.0, range(n), range(n))
-    identity_p = spmatrix(1.0, range(period), range(period))
-    P = spmatrix(0.0, range(num), range(num))
-    #fill in diagonal part
-    P[0:n, 0:n] = identity_n
-    for i in xrange(num_cycles+1):
-        P[n:n+period, i*period:(i+1)*period] = identity_p
-        P[i*period:(i+1)*period, n:n+period] = identity_p
-    #now need to add the seasonality sums to zero constraint
-    for i in xrange(num_cycles+1):
-        P[(i+1)*period-1,n:n+period] = -1.0
-        P[n:n+period,(i+1)*period-1] = -1.0
-    #remove the last row and column to eliminate the last periodic value as a free parameter
-    return P[0:(n+period-1), 0:(n+period-1)]
-    return P
-
 def spmatrix2np(spmat):
     """
         Convert a matrix or spmatrix to numpy 2D array
