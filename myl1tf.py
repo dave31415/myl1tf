@@ -18,7 +18,7 @@ def get_second_derivative_matrix(n):
                  list(chain(*[[i, i + 1, i + 2] for i in xrange(m)])))
     return D
 
-def l1tf(corr, alpha, primary=False):
+def l1tf(corr, alpha, primary=False,period=0):
     """
     :param corr: Corrupted signal, should be a numpy array / pandas Series
     :param alpha: Strength of regularization
@@ -37,12 +37,12 @@ def l1tf(corr, alpha, primary=False):
 
     assert isinstance(corr, np.ndarray)
     solver_func = l1tf_cvxopt_primary if primary else l1tf_cvxopt
-    sol = solver_func(matrix(t), alpha)
+    sol = solver_func(matrix(t), alpha,period=period)
     res = np.asarray(sol * (M - m) + m).squeeze()
     return res
 
 
-def l1tf_cvxopt(corr, alpha,period=0):
+def l1tf_cvxopt(corr, alpha,period=0, psi=np.Infinity):
     """
         minimize    (1/2) * ||x-corr||_2^2 + alpha * sum(y)
         subject to  -y <= D*x <= y
@@ -61,6 +61,12 @@ def l1tf_cvxopt(corr, alpha,period=0):
     D = get_second_derivative_matrix(n)
 
     P = D * D.T
+    if period > 0:
+        B = B_matrix(n, period)
+        A = D * B
+        P_seasonal = (1.0/psi) * A * A.T
+        P += P_seasonal
+
     q = -D * corr
 
     G = spmatrix([], [], [], (2 * m, m))
@@ -74,16 +80,15 @@ def l1tf_cvxopt(corr, alpha,period=0):
     return corr - D.T * res['x']
 
 
-def construct_seasonal_design_matrix(n, period):
+def construct_seasonal_design_matrix_deprecated(n, period):
     """
     :param n: number of data points in time series
     :param period: period of seasonality
     :return:
     """
 
-    num_cycles = n/period
-    num=n+period
-    num_extra = n - period*num_cycles
+    num_cycles = int(n)/int(period)
+    num = n + period
     identity_n = spmatrix(1.0, range(n), range(n))
     identity_p = spmatrix(1.0, range(period), range(period))
     P = spmatrix(0.0, range(num), range(num))
@@ -92,7 +97,7 @@ def construct_seasonal_design_matrix(n, period):
     for i in xrange(num_cycles+1):
         P[n:n+period, i*period:(i+1)*period] = identity_p
         P[i*period:(i+1)*period, n:n+period] = identity_p
-    #now need to add the seasonlity sums to zero constraint
+    #now need to add the seasonality sums to zero constraint
     for i in xrange(num_cycles+1):
         P[(i+1)*period-1,n:n+period] = -1.0
         P[n:n+period,(i+1)*period-1] = -1.0
@@ -113,9 +118,30 @@ def spmatrix2np(spmat):
     return np.asarray(matrix(spmat))
 
 def invert(spmat):
+    """
+    :param spmat: a cvx sparse matrix
+    :return: the inverse matrix as sparse
+    """
     arr = spmatrix2np(spmat)
     arr_inv = np.linalg.inv(arr)
     return sparse(matrix(arr_inv))
+
+def B_matrix(n, period):
+    """
+    :param n: number of target variables
+    :param period: length of period
+    :return: B matrix which maps p -> S cyclically
+    S_i = p_j (where j = i mod period)
+    """
+    num_full_cycles = int(np.ceil(n/float(period)))
+    identity_p = spmatrix(1.0, range(period), range(period))
+    num = num_full_cycles * period
+    B=spmatrix(0.0, [0, num-1], [0, period-1])
+    for i in xrange(num_full_cycles):
+        B[i*period:(i+1)*period, :] = identity_p
+    #trim off excess
+    B=B[0:n, :]
+    return B
 
 
 

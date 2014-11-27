@@ -1,6 +1,7 @@
 import myl1tf
 import numpy as np
 from matplotlib import pylab as plt
+#import seaborn
 
 def make_l1tf_mock(doplot=True, period=6, sea_amp=0.05):
     np.random.seed(3733)
@@ -32,5 +33,11 @@ def make_l1tf_mock(doplot=True, period=6, sea_amp=0.05):
 def test_l1tf_on_mock(alpha=1.0):
     mock = make_l1tf_mock()
     l1tf_fit = myl1tf.l1tf(mock['y'], alpha=alpha)
-    plt.plot(mock['x'], l1tf_fit, marker='o', linestyle='-', label='L1TF Dual, alpha=%s' % alpha)
+    plt.plot(mock['x'], l1tf_fit, marker='o', linestyle='-', label='L1TF, alpha=%s' % alpha)
+    plt.legend(loc='lower center')
+
+def test_l1tf_on_mock_with_period(alpha=1.0, period=6):
+    mock = make_l1tf_mock(period=period)
+    l1tf_fit = myl1tf.l1tf(mock['y'], alpha=alpha,period=period)
+    plt.plot(mock['x'], l1tf_fit, marker='o', linestyle='-', label='L1TF, alpha=%s, period=%s' % (alpha, period))
     plt.legend(loc='lower center')
