@@ -2,3 +2,7 @@ myl1tf
 ======
 
 L1TF trend fitting in python including seasonality
+
+Example:
+
+test_myl1tf.test_l1tf_on_mock_with_period(period=6,alpha=0.5,eta=1.0)
