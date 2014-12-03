@@ -11,6 +11,4 @@ test_myl1tf.test_l1tf_on_mock_with_period(period=6,alpha=0.5,eta=1.0)
 
 Based on the [paper](
 http://web.stanford.edu/%7Egorin/papers/l1_trend_filter.pdf
-)
-
-By Kim, Koh & Boyd
+) By Kim, Koh & Boyd
