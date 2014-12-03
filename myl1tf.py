@@ -18,44 +18,24 @@ def get_second_derivative_matrix(n):
                  list(chain(*[[i, i + 1, i + 2] for i in xrange(m)])))
     return D
 
-def l1tf(corr, alpha, primary=False,period=0):
-    """
-    :param corr: Corrupted signal, should be a numpy array / pandas Series
-    :param alpha: Strength of regularization
-    :param primary : if True will use Primary rather than Dual space , default False
-    :return: The filtered series
-    This uses numpy arrays, a wrapper for the one using cvxopt version which
-    returns cvxopt matrices.
-    """
-
+def l1tf(y, alpha, primary=False,period=0,psi=1.0):
     # scaling things to standardized size
-    m = float(corr.min())
-    M = float(corr.max())
-    denom = M - m
-    # if denom == 0, corr is constant
-    t = (corr - m) / (1 if denom == 0 else denom)
+    y_min = float(y.min())
+    y_max = float(y.max())
+    denom = y_max - y_min
+    # if denom == 0, y is constant
+    y_scaled = (y - y_min) / (1 if denom == 0 else denom)
 
-    assert isinstance(corr, np.ndarray)
-    solver_func = l1tf_cvxopt_primary if primary else l1tf_cvxopt
-    sol = solver_func(matrix(t), alpha,period=period)
-    res = np.asarray(sol * (M - m) + m).squeeze()
-    return res
+    assert isinstance(y, np.ndarray)
+    solution = l1tf_cvxopt(matrix(y_scaled), alpha, period=period, psi=psi)
+    #convert back to unscaled, numpy arrays
+    for k, v in solution.iteritems():
+        solution[k] = np.asarray(v * (y_max - y_min) + y_min).squeeze()
+    return solution
 
 
-def l1tf_cvxopt(corr, alpha,period=0, psi=np.Infinity):
-    """
-        minimize    (1/2) * ||x-corr||_2^2 + alpha * sum(y)
-        subject to  -y <= D*x <= y
-
-    Variables x (n), y (n-2).
-
-    :param corr: corrupted data being fit
-    :param alpha: regularization parameter
-    :return: The fit in cvxopt matrix.
-    Solves in the Dual problem space
-    """
-
-    n = corr.size[0]
+def l1tf_cvxopt(y, alpha, period=0, psi=1.0):
+    n = y.size[0]
     m = n - 2
 
     D = get_second_derivative_matrix(n)
@@ -63,21 +43,37 @@ def l1tf_cvxopt(corr, alpha,period=0, psi=np.Infinity):
     P = D * D.T
     if period > 0:
         B = B_matrix(n, period)
-        A = D * B
-        P_seasonal = (1.0/psi) * A * A.T
+        T = zero_spmatrix(period, m=period-1)
+        T[0:period-1, :] = identity_spmatrix(period-1)
+        T[period-1, :] = -1.0
+        Q=B*T
+        G = D * Q
+        P_seasonal = (1.0/psi) * G * G.T
         P += P_seasonal
 
-    q = -D * corr
+    q = -D * y
 
     G = spmatrix([], [], [], (2 * m, m))
-    G[:m, :m] = spmatrix(1.0, range(m), range(m))
-    G[m:, :m] = -spmatrix(1.0, range(m), range(m))
+    G[:m, :m] = identity_spmatrix(m)
+    G[m:, :m] = - identity_spmatrix(m)
 
     h = matrix(alpha, (2 * m, 1), tc='d')
 
     res = solvers.qp(P, q, G, h)
 
-    return corr - D.T * res['x']
+    nu = res['x']
+    DT_nu = D.T * nu
+
+    output={}
+    output['y'] = y
+    output['nu'] = nu
+    output['x'] = y - DT_nu
+    if period > 0:
+        output['x'] -= (1.0/psi) * Q * Q.T * DT_nu
+        output['p'] = (1.0/psi) * Q.T * DT_nu
+        output['s'] = Q * output['p']
+        output['x_with_seasonal'] = output['x'] + output['s']
+    return output
 
 
 def spmatrix2np(spmat):
@@ -85,10 +81,6 @@ def spmatrix2np(spmat):
         Convert a matrix or spmatrix to numpy 2D array
     :param spmat: matrix or spmatrix
     :return: numpy 2D array of type float64
-    """
-    """
-    :param spmat:
-    :return:
     """
     return np.asarray(matrix(spmat))
 
@@ -109,15 +101,24 @@ def B_matrix(n, period):
     S_i = p_j (where j = i mod period)
     """
     num_full_cycles = int(np.ceil(n/float(period)))
-    identity_p = spmatrix(1.0, range(period), range(period))
+    identity_p = identity_spmatrix(period)
     num = num_full_cycles * period
-    B=spmatrix(0.0, [0, num-1], [0, period-1])
+    B = zero_spmatrix(num, period)
     for i in xrange(num_full_cycles):
         B[i*period:(i+1)*period, :] = identity_p
     #trim off excess
     B=B[0:n, :]
     return B
 
+
+def identity_spmatrix(n):
+    return spmatrix(1.0, range(n), range(n))
+
+
+def zero_spmatrix(n,m=None):
+    if m is None:
+        m = n
+    return spmatrix(0.0, [n-1], [m-1])
 
 
 

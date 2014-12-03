@@ -25,19 +25,23 @@ def make_l1tf_mock(doplot=True, period=6, sea_amp=0.05):
     if doplot:
         plt.clf()
         plt.plot(x, y, marker='o', linestyle='-', label='True', markersize=10, alpha=0.3)
-        plt.plot(x, y_with_seasonal, marker='o', linestyle='-', label='True w_ seasonal')
+        plt.plot(x, y_with_seasonal, marker='o', linestyle='-', label='True w seasonal')
 
     return {'x': x, 'y': y, 'y_with_seasonal': y_with_seasonal, 'seas_lookup': seas_lookup}
 
 
 def test_l1tf_on_mock(alpha=1.0):
+    plt.clf()
     mock = make_l1tf_mock()
     l1tf_fit = myl1tf.l1tf(mock['y'], alpha=alpha)
-    plt.plot(mock['x'], l1tf_fit, marker='o', linestyle='-', label='L1TF, alpha=%s' % alpha)
+    plt.plot(mock['x'], l1tf_fit['x'], marker='o', linestyle='-', label='L1TF, alpha=%s' % alpha)
     plt.legend(loc='lower center')
 
-def test_l1tf_on_mock_with_period(alpha=1.0, period=6):
+def test_l1tf_on_mock_with_period(alpha=1.0, period=6, psi=1.0):
+    plt.clf()
     mock = make_l1tf_mock(period=period)
-    l1tf_fit = myl1tf.l1tf(mock['y'], alpha=alpha,period=period)
-    plt.plot(mock['x'], l1tf_fit, marker='o', linestyle='-', label='L1TF, alpha=%s, period=%s' % (alpha, period))
+    l1tf_fit = myl1tf.l1tf(mock['y_with_seasonal'], alpha=alpha, period=period, psi=psi)
+    plt.plot(mock['x'], l1tf_fit['x'], marker='o', linestyle='-', markersize=10,alpha=0.8,label='L1TF, alpha=%s, period=%s' % (alpha, period))
+    plt.plot(mock['x'], l1tf_fit['x_with_seasonal'], marker='o', linestyle='-', label='L1TF + seasonal, alpha=%s, period=%s' % (alpha, period))
     plt.legend(loc='lower center')
+    return l1tf_fit
