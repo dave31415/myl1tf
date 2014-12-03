@@ -1,7 +1,13 @@
 import myl1tf
 import numpy as np
 from matplotlib import pylab as plt
-#import seaborn
+try:
+    #import seaborn
+    pass
+except:
+    pass
+
+
 
 def make_l1tf_mock(doplot=True, period=6, sea_amp=0.05):
     np.random.seed(3733)
@@ -24,8 +30,10 @@ def make_l1tf_mock(doplot=True, period=6, sea_amp=0.05):
         y_with_seasonal = y
     if doplot:
         plt.clf()
-        plt.plot(x, y, marker='o', linestyle='-', label='True', markersize=10, alpha=0.3)
-        plt.plot(x, y_with_seasonal, marker='o', linestyle='-', label='True w seasonal')
+        lab='True, period=%s' % period
+        plt.plot(x, y, marker='o', linestyle='-', label=lab, markersize=8, alpha=0.3,color='blue')
+        lab='True + seasonality, period=%s' % period
+        plt.plot(x, y_with_seasonal, marker='o', linestyle='-', label=lab, markersize=8, alpha=0.3,color='red')
 
     return {'x': x, 'y': y, 'y_with_seasonal': y_with_seasonal, 'seas_lookup': seas_lookup}
 
@@ -37,11 +45,14 @@ def test_l1tf_on_mock(alpha=1.0):
     plt.plot(mock['x'], l1tf_fit['x'], marker='o', linestyle='-', label='L1TF, alpha=%s' % alpha)
     plt.legend(loc='lower center')
 
-def test_l1tf_on_mock_with_period(alpha=1.0, period=6, psi=1.0):
+def test_l1tf_on_mock_with_period(alpha=1.0, period=6, eta=1.0):
     plt.clf()
     mock = make_l1tf_mock(period=period)
-    l1tf_fit = myl1tf.l1tf(mock['y_with_seasonal'], alpha=alpha, period=period, psi=psi)
-    plt.plot(mock['x'], l1tf_fit['x'], marker='o', linestyle='-', markersize=10,alpha=0.8,label='L1TF, alpha=%s, period=%s' % (alpha, period))
-    plt.plot(mock['x'], l1tf_fit['x_with_seasonal'], marker='o', linestyle='-', label='L1TF + seasonal, alpha=%s, period=%s' % (alpha, period))
-    plt.legend(loc='lower center')
+    l1tf_fit = myl1tf.l1tf(mock['y_with_seasonal'], alpha=alpha, period=period, eta=eta)
+    lab = 'L1TF, period=%s, alpha=%s, eta=%s' % (period, alpha, eta)
+    plt.plot(mock['x'], l1tf_fit['x'], marker='o', linestyle='-', markersize=4,alpha=0.8,label=lab)
+    lab = 'L1TF + seasonal, period=%s, alpha=%s, eta=%s' % (period, alpha,eta)
+    plt.plot(mock['x'], l1tf_fit['x_with_seasonal'], marker='o', markersize=4, linestyle='-', label=lab)
+    plt.legend(loc='lower left')
+    plt.ylim(0, 1)
     return l1tf_fit

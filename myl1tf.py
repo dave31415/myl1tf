@@ -18,7 +18,7 @@ def get_second_derivative_matrix(n):
                  list(chain(*[[i, i + 1, i + 2] for i in xrange(m)])))
     return D
 
-def l1tf(y, alpha, primary=False,period=0,psi=1.0):
+def l1tf(y, alpha, primary=False,period=0,eta=1.0):
     # scaling things to standardized size
     y_min = float(y.min())
     y_max = float(y.max())
@@ -27,14 +27,14 @@ def l1tf(y, alpha, primary=False,period=0,psi=1.0):
     y_scaled = (y - y_min) / (1 if denom == 0 else denom)
 
     assert isinstance(y, np.ndarray)
-    solution = l1tf_cvxopt(matrix(y_scaled), alpha, period=period, psi=psi)
+    solution = l1tf_cvxopt(matrix(y_scaled), alpha, period=period, eta=eta)
     #convert back to unscaled, numpy arrays
     for k, v in solution.iteritems():
         solution[k] = np.asarray(v * (y_max - y_min) + y_min).squeeze()
     return solution
 
 
-def l1tf_cvxopt(y, alpha, period=0, psi=1.0):
+def l1tf_cvxopt(y, alpha, period=0, eta=1.0):
     n = y.size[0]
     m = n - 2
 
@@ -48,7 +48,7 @@ def l1tf_cvxopt(y, alpha, period=0, psi=1.0):
         T[period-1, :] = -1.0
         Q=B*T
         G = D * Q
-        P_seasonal = (1.0/psi) * G * G.T
+        P_seasonal = (1.0/eta) * G * G.T
         P += P_seasonal
 
     q = -D * y
@@ -69,8 +69,8 @@ def l1tf_cvxopt(y, alpha, period=0, psi=1.0):
     output['nu'] = nu
     output['x'] = y - DT_nu
     if period > 0:
-        output['x'] -= (1.0/psi) * Q * Q.T * DT_nu
-        output['p'] = (1.0/psi) * Q.T * DT_nu
+        output['x'] -= (1.0/eta) * Q * Q.T * DT_nu
+        output['p'] = (1.0/eta) * Q.T * DT_nu
         output['s'] = Q * output['p']
         output['x_with_seasonal'] = output['x'] + output['s']
     return output
