@@ -2,3 +2,6 @@
 *.py~
 .idea/*
 *.xml
+*.aux
+*.log
+*.pdf

@@ -1,0 +1,57 @@
+\documentclass{article}
+
+\begin{document}
+
+\title{Extensions of L1TF}
+\author{David Johnston}
+
+\maketitle
+
+\begin{abstract}
+This papers extends or further elucidates ideas from Kim, Koh \& Boyd for L1 regularized
+trend filtering and acts a documentation to a repository of python code which implements
+this.
+\end{abstract}
+
+\section{The primary and dual quadratic programming problems (from KKB)}
+
+We will start off at Section 5.2 of KKB where they state the quadratic programming problem for L1TF
+and also state the dual problem.
+
+\begin{eqnarray}
+\mbox{minimize} & \frac{1}{2} ~ || y - x ||_2^2  + \lambda ||z||_1 \\
+\mbox{subject to} & z = D x
+\end{eqnarray}
+The first is an L2 norm and the second an L1 norm. The Lagrangian, with a dual variable $\nu$ in $\mathbf{R}^{n-2}$, is
+\[
+L(x,z,\nu) =  || y - x ||_2^2  + \lambda ||z||_1 + \nu^T (D x -z)
+\]
+The dual function is
+\[
+\mbox{inf}_{x,z} ~ L(x,z,\nu) =
+    \left\{
+    \begin{array}{ll}
+    - \frac{1}{2} ~ \nu^T D D^T \nu + y^T D^T \nu &  - \lambda \mathbf{1} < \nu < \lambda \mathbf{1} \\
+  -\infty  & \mbox{otherwise.} \\
+  \end{array}
+  \right.
+\]
+and so the dual problem is
+
+\begin{eqnarray}
+\mbox{minimize} & \frac{1}{2} ~ \nu^T D D^T \nu - y^T D^T \nu \\
+\mbox{subject to} & - \lambda \mathbf{1} < \nu < \lambda \mathbf{1}
+\end{eqnarray}
+
+From the solution $\nu^*$ of the dual problem, we can compute the L1TF solution,
+\[
+x^* = y - D \nu^*
+\]
+
+
+\section{Seasonality}
+
+As suggested in KKB we can adapt this to add a seasonal component.
+
+\end{document}
+
