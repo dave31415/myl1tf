@@ -226,8 +226,8 @@ and write this as
 \mbox{minimize over}~ p : & ||w-F p||_1 \\
 \end{eqnarray}
 
-This is now in a standard form of a problem that can be transformed into a linear programming problem. This is
-the Least Absolute Deviation (LAD) problem. The cvxopt library contains a program for solving this problem. Thus,
+This is now in the form of a well known problem, the Least Absolute Deviation (LAD) problem and can be written as a
+a linear program. The cvxopt library contains a program for solving this problem. Thus,
 we can solve for $\nu$ by solving the quadratic programming problem and then solve this equation for $p$ and then
 use \ref{residual} to solve for $x$.
 
