@@ -41,7 +41,7 @@ The dual function is
 and so the dual problem is
 
 \begin{eqnarray}
-\mbox{minimize} & \frac{1}{2} ~ \nu^T D D^T \nu - y^T D^T \nu \\
+\mbox{maximize} & -\frac{1}{2} ~ \nu^T D D^T \nu + y^T D^T \nu \\
 \mbox{subject to} & - \lambda \mathbf{1} < \nu < \lambda \mathbf{1}
 \end{eqnarray}
 
@@ -82,54 +82,154 @@ we can write $s = B T p \equiv Q p$. By doing this we can rewrite the optimizati
 with the $p \in \mathbf{R}^{(P-1)}$ now unconstrained. To improve stabilization and allow more control over $p$, we will add
 a $l_2$ regularization constraint and write our problem.
 \begin{eqnarray}
-\mbox{minimize} & \frac{1}{2} ~ || y - x - Q p||_2^2  + \lambda ||z||_1 + \eta ~ \frac{1}{2} p^Tp\\
+\mbox{minimize} & \frac{1}{2} ~ || y - x - Q p||_2^2  + \lambda ||z||_1 + \eta ~ \frac{1}{2} \tilde{p}^T \tilde{p}\\
 \mbox{subject to} & z = D x
 \end{eqnarray}
 
 We will now proceed as before and derive the dual problem. To do this we first
 write down the Lagrangian
 \[
-L(x,z,p,\nu,\eta,\lambda) =  || y - x - Q p||_2^2  + \lambda ||z||_1 + \nu^T (D x -z) + \eta ~ \frac{1}{2} p^Tp
+L(x,z,p,\nu,\eta,\lambda) =  R  + \lambda ||z||_1 + \nu^T (D x -z) + \eta ~ \frac{1}{2} p^T H ~p
 \]
-and calculate $\mbox{inf}_{x,z,p} L(x,z,p,\nu,\eta,\lambda)$ by setting gradients w.r.t. $x$ and $p$ to zero. The
-more subtle minimization w.r.t. $z$ will result in the same constraint in the dual problem as before. The reader
-should ensure that they understand how the terms $\lambda ||z||_1 - \nu^T z$ result in the constraint
-$- \lambda \mathbf{1} < \nu < \lambda \mathbf{1}$. One can show that outside of this range, the $inf_z$ of this term
-is $-\infty$ (at either $z = \pm \infty$) and within is 0 (at $z=0$) and so feasible solutions must lie within.
+with  $H = T^T T$ and
+\begin{eqnarray}
+R & \equiv & || y - x - Q p||_2^2 \\
+& = & \frac{1}{2} y^T y + \frac{1}{2} x^T x + \frac{1}{2} p^T Q^T Q p \\
+&  & - y^T x - y^T Q p + x^T Q p
+\end{eqnarray}
+
+We can calculate $\mbox{inf}_{x,z,p} L(x,z,p,\nu,\eta,\lambda)$ by setting gradients w.r.t. $x$ and $p$ to zero. The
+gradients of $R$ are
+
+\begin{eqnarray}
+\nabla_x R &  =  &  x^T - y^T - p^T Q^T\\
+\nabla_p R &  =  &  \left( x^T - y^T - p^T Q^T \right) Q \\
+& = & \left(\nabla_x R \right) Q \\
+\end{eqnarray}
+and the gradients of $L$ are
+\begin{eqnarray}
+\nabla_x L &  =  &  x^T - y^T - p^T Q^T + \nu^T D\\
+\nabla_p L &  =  &  \left( x^T - y^T - p^T Q^T \right) Q + \nu p^T H \\
+\end{eqnarray}
+
 
 Setting $\nabla_x L$ =0 yields the equation.
 \[
-y - x - Qp = D^T \nu
+y - x - Qp = D^T \nu \label{residual}
 \] or
 \[
 x = y - Qp - D^T \nu
 \]
-and $\nabla_p L$ =0 yields
+Equation \ref{residual} shows that $D^T \nu$ is the residual.
+
+Setting $\nabla_p L$ =0 yields
 \[
-p = \eta^{-1} Q^T D^T \nu
+p = \eta^{-1} H^{-1} Q^T D^T \nu
 \]
 and we can use this last equation for $p$ to solve for $x$ and we can write these solutions as
 \begin{eqnarray}
-p^* & = &  \eta^{-1} Q^T D^T \nu \\
+p^* & = &  \eta^{-1} H^{-1} Q^T D^T \nu \\
 & and & \nonumber \\
-x^* & = & y - D^T \nu - \eta^{-1} Q Q^T D^T \nu
+x^* & = & y - D^T \nu - \eta^{-1} Q H^{-1} Q^T D^T \nu
 \end{eqnarray}
-We then construct the dual problem by plugging these solutions into the Lagrangian and multiplying it by -1
-(minimize rather than maximize) and we arrive at
+and so once we have a solution for $\nu$ we can use these to obtain separate
+solutions for $x$ and $p$.
+
+The more subtle minimization w.r.t. $z$ will result in the same constraint in the dual problem as before. The reader
+should ensure that they understand how the terms $\lambda ||z||_1 - \nu^T z$ result in the constraint
+$- \lambda \mathbf{1} < \nu < \lambda \mathbf{1}$. One can show that outside of this range, the $inf_z$ of this term
+is $-\infty$ (at either $z = \pm \infty$) and within is 0 (at $z=0$) and so any supremum for $\nu$
+must lie within.
+
+We then construct the dual problem by plugging these solutions into the Lagrangian and we arrive at
 \begin{eqnarray}
-\mbox{minimize} & \frac{1}{2} ~ \nu^T A \nu - y^T D^T \nu \\
+\mbox{maximize} & -\frac{1}{2} ~ \nu^T A \nu + y^T D^T \nu \\
 \mbox{subject to} & - \lambda \mathbf{1} < \nu < \lambda \mathbf{1}
 \end{eqnarray}
 with
 \[
-A = D D^T + \eta^{-1} D Q Q^T D^T
+A = D D^T + \eta^{-1} D Q H^{-1} Q^T D^T
 \]
 We solve this quadratic programming problem as before for $\nu$ and then use the equations above
-to calculate $x$ and $p$ from $\nu$. It is apparent that as $\nu \rightarrow \infty$ (seasonality is suppressed),
-$p \rightarrow 0$ and we recover the same solution as before for $x$.
+to calculate $x$ and $p$ from $\nu$. It is apparent that as $\eta \rightarrow \infty$ (seasonality is suppressed),
+$p \rightarrow 0$ and we recover the same solution as before for $x$. We cannot use these equations directly with
+the other limit $\eta = 0$, though we will address that in a later section. However there is no problem setting
+$\eta$ to a neglibly small number and applying these formula.
 
 \section{Seasonality using $l_1$ regularization}
-Finish
+We can also use an $l_1$ regularization term on the seasonality terms $p$ which will result in
+sparse solutions for $p$. That is, with a well chosen regularization parameter,
+no seasonality will be used when it isn't really required. This might be more useful than the $l_2$
+regularization described above though the solution is a little more complicated.
+
+The situation for $l_1$ regularization is similar to the above for the $x$ coordinate and leads to the
+same Equation \ref{residual} for the residual. Submitting this solution for $x$ in terms of $\nu$ and $p$
+leads to an optimization problem for $\nu$ and $p$ as follows
+
+\begin{eqnarray}
+sup_{\nu} ~ inf_p & -\frac{1}{2} ~ \nu^T D D^T \nu + y^T D^T \nu -\nu^T D Q p + \eta ||T p||_1 \\
+\mbox{subject to} & - \lambda \mathbf{1} < \nu < \lambda \mathbf{1}
+\end{eqnarray}
+
+We can write $||T p||_1 = ||p||_1 + |u^T p| $ where $u$ is the unity vector $u_i=1$. There are no constraints on
+$p$ so this term $|u^T p|$ can be any non-negative number for some choice of $p$ and so
+$inf_{p} ~  -\nu^T D Q p + \eta ||T p||_1 = inf_{p} ~  -\nu^T D Q p + \eta ||p||_1 $ and
+\[
+inf_{p} ~  -\nu^T D Q p + \eta ||p||_1 =
+    \left\{
+    \begin{array}{ll}
+    0 &  - \eta \mathbf{1} <  Q^T D^T \nu < \eta \mathbf{1} \\
+  -\infty  & \mbox{otherwise.} \\
+  \end{array}
+  \right.
+\]
+
+This implies that the Lagrangian for $\nu$ to be optimized is the same as the non-seasonal
+version but with an additional constraint.
+
+\begin{eqnarray}
+\mbox{maximize} & - \frac{1}{2} ~ \nu^T D D^T \nu + y^T D^T \nu \\
+\mbox{subject to} & - \lambda \mathbf{1} < \nu < \lambda \mathbf{1} \\
+& - \eta \mathbf{1} < Q^T D^T \nu < \eta \mathbf{1} \\
+\end{eqnarray}
+
+Notice that the $l_2$ solution leads to a modification of the quadratic form whereas the
+$l_1$ problem instead leads to an additional constraint. Both of these are standard quadratic
+programming problems that can be solved with any convex optimization library (such as cvxopt for python).
+A difference however is that the $l_2$ solution included a simple way of calculating $x$ and $p$ once
+$\nu$ has been solved. With the $l_1$ solution here, we have to solve a second optimization problem
+in order to separate out the separate components.
+
+To do this, note that after $\nu$ has been solved for, the first $\chi^2$ term is now constant
+and so we need to optimize the sum of regularization terms by themselves
+
+\begin{eqnarray}
+\mbox{minimize} & ||D x||_1 + (\lambda / \eta) ||T_p||_1 \\
+\mbox{subject to} & y - x - Qp = D^T \nu \\
+\end{eqnarray}
+
+which we can write solely in terms of $p$ as
+
+\begin{eqnarray}
+\mbox{minimize over} ~p : & ||D (y - D^T \nu - Q p)||_1 + (\lambda / \eta) ||T_p||_1 \\
+\end{eqnarray}
+
+We can combine these into an extended vector space
+\[
+w = [D (y - D^T \nu), 0]^T
+\]
+\[
+F = [Q p, -(\lambda/\eta) T]
+\]
+and write this as
+\begin{eqnarray}
+\mbox{minimize over}~ p : & ||w-F p||_1 \\
+\end{eqnarray}
+
+This is now in a standard form of a problem that can be transformed into a linear programming problem. This is
+the Least Absolute Deviation (LAD) problem. The cvxopt library contains a program for solving this problem. Thus,
+we can solve for $\nu$ by solving the quadratic programming problem and then solve this equation for $p$ and then
+use \ref{residual} to solve for $x$.
 
 \section{Modeling outliers for more robust fits}
 Finish
