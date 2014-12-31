@@ -1,6 +1,7 @@
 import myl1tf
 import numpy as np
 from matplotlib import pylab as plt
+
 try:
     #import seaborn
     pass
@@ -29,6 +30,7 @@ def make_l1tf_mock(doplot=True, period=6, sea_amp=0.05):
     else:
         y_with_seasonal = y
     if doplot:
+
         plt.clf()
         lab='True, period=%s' % period
         plt.plot(x, y, marker='o', linestyle='-', label=lab, markersize=8, alpha=0.3,color='blue')
@@ -49,6 +51,18 @@ def test_l1tf_on_mock_with_period(alpha=1.0, period=6, eta=1.0):
     plt.clf()
     mock = make_l1tf_mock(period=period)
     l1tf_fit = myl1tf.l1tf(mock['y_with_seasonal'], alpha=alpha, period=period, eta=eta)
+    lab = 'L1TF, period=%s, alpha=%s, eta=%s' % (period, alpha, eta)
+    plt.plot(mock['x'], l1tf_fit['x'], marker='o', linestyle='-', markersize=4,alpha=0.8,label=lab)
+    lab = 'L1TF + seasonal, period=%s, alpha=%s, eta=%s' % (period, alpha,eta)
+    plt.plot(mock['x'], l1tf_fit['x_with_seasonal'], marker='o', markersize=4, linestyle='-', label=lab)
+    plt.legend(loc='lower left')
+    plt.ylim(0, 1)
+    return l1tf_fit
+
+def test_l1tf_on_mock_with_period_l1p(alpha=1.0, period=6, eta=1.0, sea_amp=0.05):
+    plt.clf()
+    mock = make_l1tf_mock(period=period,sea_amp=sea_amp)
+    l1tf_fit = myl1tf.l1tf(mock['y_with_seasonal'], alpha=alpha, period=period, eta=eta, with_l1p=True)
     lab = 'L1TF, period=%s, alpha=%s, eta=%s' % (period, alpha, eta)
     plt.plot(mock['x'], l1tf_fit['x'], marker='o', linestyle='-', markersize=4,alpha=0.8,label=lab)
     lab = 'L1TF + seasonal, period=%s, alpha=%s, eta=%s' % (period, alpha,eta)
