@@ -7,7 +7,6 @@ setup(name='myl1tf',
       description='L1 trend filtering with seasonality',
       author='David Johnston',
       author_email='dave31415@gmail.com',
-      url='',
-      packages=['myl1tf'],
-      install_requires=[]
+      url='https://github.com/dave31415/myl1tf',
+      packages=['myl1tf']
      )
