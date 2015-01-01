@@ -4,7 +4,8 @@
 
 \begin{document}
 
-\title{Extensions of L1 Trend Filtering: Seasonality}
+\title{Extensions of L1 Trend Filtering: Seasonality and Outlier Modeling
+with $l_1$ and $l_2$ Regularization}
 \author{David Johnston}
 
 \maketitle
@@ -197,10 +198,11 @@ Notice that the $l_2$ solution leads to a modification of the quadratic form whe
 $l_1$ problem instead leads to an additional constraint. Both of these are standard quadratic
 programming problems that can be solved with any convex optimization library (such as cvxopt for python).
 A difference however is that the $l_2$ solution included a simple way of calculating $x$ and $p$ once
-$\nu$ has been solved. With the $l_1$ solution here, we have to solve a second optimization problem
-in order to separate out the separate components.
+$\nu$ has been solved.
 
-To do this, note that after $\nu$ has been solved for, the first $\chi^2$ term is now constant
+With the $l_1$ solution here, we have to solve a second optimization problem
+in order to separate out the separate components. To do this, note that after $\nu$ has been solved for,
+the first $\chi^2$ term is now constant
 and so we need to optimize the sum of regularization terms by themselves
 
 \begin{eqnarray}
@@ -214,13 +216,18 @@ which we can write solely in terms of $p$ as
 \mbox{minimize over} ~p : & ||D (y - D^T \nu - Q p)||_1 + (\lambda / \eta) ||T_p||_1 \\
 \end{eqnarray}
 
-We can combine these into an extended vector space
+The trick to solving this is to combine these into a larger vector space
 \[
 w = [D (y - D^T \nu), 0]^T
 \]
-\[
-F = [Q p, -(\lambda/\eta) T]
-\]
+and the $F$ matrix defined by two matrix blocks
+\begin{equation}
+F=\left[
+\begin{array}{c|c}
+Q  & -(\lambda/\eta) T \\
+\end{array}\right]
+\end{equation}
+
 and write this as
 \begin{eqnarray}
 \mbox{minimize over}~ p : & ||w-F p||_1 \\
@@ -232,11 +239,47 @@ we can solve for $\nu$ by solving the quadratic programming problem and then sol
 use \ref{residual} to solve for $x$.
 
 \section{Modeling outliers for more robust fits}
-Finish
+KKB also suggest including outliers by adding terms $u$ to the model with a strong $l_1$ regularization. This will
+result in a sparse solution for the $u$ values which can model things like spikes without throwing off the other terms.
+These can be treated just like the $l_1$ regularized seasonality and will result in the same quadratic programming
+problem as before with an additional constraint $-\delta < D^T \nu < \delta$ where delta is the $l_1$
+regularization parameter for the $u$ vector.
+
+As before, we end up with a solution for $\nu$ and must still solve the LAD problem to get separate solutions for
+$x, p$ and $u$.
+\begin{eqnarray}
+\mbox{minimize over} ~p : & ||D (y - D^T \nu - Q p - u)||_1 + (\lambda / \eta) ||T_p||_1 + \delta/\lambda ||u||_1 \\
+\end{eqnarray}
+
+We can employ the same trick as before and write this as a single LAD problem on a larger vector space.
+\begin{eqnarray}
+\mbox{minimize over}~ p,u : & ||w-F z||_1 \\
+\end{eqnarray}
+with
+\begin{eqnarray}
+z & = & [p , u]^T\\
+w & = & [D (y - D^T \nu), 0, 0]^T \\
+\end{eqnarray}
+and $F$ specified by matrix blocks
+\begin{equation}
+F=\left[
+\begin{array}{c|c}
+Q  & I_n   \\
+\\
+\hline
+& \\
+-(\lambda/\eta) T & 0_n \\
+\\
+\hline
+& \\
+0_p, & -(\delta/\lambda) I_n \\
+\end{array}\right]
+\end{equation}
+
 
 \section{Implementation}
 The Githib repository https://github.com/dave31415/myl1tf contains an implementation for this
-L1TF modeling with seasonality. This is a fork of the repository
+L1TF modeling with seasonality. This was a fork of the repository
 https://github.com/elsonidoq/py-l1tf by Pablo Zivic which implements the
 simpler version without seasonality. Both versions are in python and
 use the python cvxopt library to solve the quadratic programming problems. Our
