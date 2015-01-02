@@ -9,11 +9,9 @@ solvers.options['show_progress'] = 0
 def get_second_derivative_matrix(n):
     """
     :param n: The size of the time series
-
     :return: A matrix D such that if x.size == (n,1), D * x is the second derivative of x
     """
     m = n - 2
-
     D = spmatrix(list(chain(*[[1, -2, 1]] * m)),
                  list(chain(*[[i] * 3 for i in xrange(m)])),
                  list(chain(*[[i, i + 1, i + 2] for i in xrange(m)])))
@@ -50,17 +48,17 @@ def l1tf_cvxopt(y, alpha, period=0, eta=1.0):
     P = D * D.T
     if period > 0:
         B = B_matrix(n, period)
-        T=T_matrix(period)
-        Q=B*T
+        T = T_matrix(period)
+        Q = B*T
         DQ = D * Q
-        TT= T.T * T
+        TT = T.T * T
         TTI = invert(TT)
         P_seasonal = (1.0/eta) * DQ * TTI * DQ.T
         P += P_seasonal
 
     q = -D * y
 
-    G = zero_spmatrix(2*m,m)
+    G = zero_spmatrix(2*m, m)
     G[:m, :m] = identity_spmatrix(m)
     G[m:, :m] = - identity_spmatrix(m)
 
@@ -137,6 +135,61 @@ def l1tf_cvxopt_l1p(y, alpha, period=0, eta=1.0):
 
     return output
 
+def l1tf_cvxopt_l1p_with_ouliers(y, alpha, period=0, eta=1.0):
+    n = y.size[0]
+    m = n - 2
+
+    D = get_second_derivative_matrix(n)
+
+    P = D * D.T
+
+    q = -D * y
+
+    n_contraints = m
+    if period > 1:
+        n_contraints += (period-1)
+
+    G = zero_spmatrix(2 * n_contraints, m)
+    G[:m, :m] = identity_spmatrix(m)
+    G[m:2*m, :m] = - identity_spmatrix(m)
+    h = matrix(alpha, (2 * n_contraints, 1), tc='d')
+
+    if period > 1:
+        B = B_matrix(n, period)
+        T=T_matrix(period)
+        Q=B*T
+        DQ = D * Q
+        G[2*m:2*m+period-1, :m] = DQ.T
+        G[2*m+period-1:, :m] = -DQ.T
+        h[2*m:] = eta
+
+    res = solvers.qp(P, q, G, h)
+
+    nu = res['x']
+    DT_nu = D.T * nu
+
+    output={}
+    output['y'] = y
+    output['x_with_seasonal'] = y - DT_nu
+    if period > 1:
+        #separate seasonal from non-seasonal by solving an
+        #least norm problem
+        ratio= eta/alpha
+        Pmat = zero_spmatrix(m+period, period-1)
+        Pmat[:m, :period-1] = DQ
+        Pmat[m:(m+period), :period-1] = -ratio * T
+        qvec = matrix(0.0, (m+period, 1), tc='d')
+        qvec[:m] = D*(y-DT_nu)
+        p_solution = l1.l1(matrix(Pmat), qvec)
+        QP_solution = Q*p_solution
+        output['p'] = p_solution
+        output['s'] = QP_solution
+        output['x'] = output['x_with_seasonal'] - output['s']
+        print 'sum seasonal is: %s' % sum(output['s'][:period])
+
+    return output
+
+
 
 def spmatrix2np(spmat):
     """
@@ -163,7 +216,6 @@ def pinvert(spmat):
     arr = spmatrix2np(spmat)
     arr_inv = np.linalg.pinv(arr)
     return sparse(matrix(arr_inv))
-
 
 
 def B_matrix(n, period):

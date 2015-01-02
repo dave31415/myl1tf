@@ -223,8 +223,10 @@ w = [D (y - D^T \nu), 0]^T
 and the $F$ matrix defined by two matrix blocks
 \begin{equation}
 F=\left[
-\begin{array}{c|c}
-Q  & -(\lambda/\eta) T \\
+\begin{array}{c}
+Q  \\
+\hline
+(\lambda/\eta) T \\
 \end{array}\right]
 \end{equation}
 
@@ -236,7 +238,7 @@ and write this as
 This is now in the form of a well known problem, the Least Absolute Deviation (LAD) problem and can be written as a
 a linear program. The cvxopt library contains a program for solving this problem. Thus,
 we can solve for $\nu$ by solving the quadratic programming problem and then solve this equation for $p$ and then
-use \ref{residual} to solve for $x$.
+use Equation \ref{residual} to solve for $x$.
 
 \section{Modeling outliers for more robust fits}
 KKB also suggest including outliers by adding terms $u$ to the model with a strong $l_1$ regularization. This will
@@ -268,11 +270,11 @@ Q  & I_n   \\
 \\
 \hline
 & \\
--(\lambda/\eta) T & 0_n \\
+(\lambda/\eta) T & 0_n \\
 \\
 \hline
 & \\
-0_p, & -(\delta/\lambda) I_n \\
+0_p, & (\delta/\lambda) I_n \\
 \end{array}\right]
 \end{equation}
 
