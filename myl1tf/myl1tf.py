@@ -17,7 +17,20 @@ def get_second_derivative_matrix(n):
                  list(chain(*[[i, i + 1, i + 2] for i in xrange(m)])))
     return D
 
-def l1tf(y, alpha, period=0,eta=1.0, with_l1p=False):
+def get_first_derivative_matrix(n):
+    """
+    :param n: The size of the time series
+    :return: A matrix D such that if x.size == (n,1), D * x is the first derivative of x
+    :symmetric first derivative (excludes endpoints like as before)
+    """
+    m = n - 2
+    F = spmatrix(list(chain(*[[-0.5, 0.0, 0.5]] * m)),
+                 list(chain(*[[i] * 3 for i in xrange(m)])),
+                 list(chain(*[[i, i + 1, i + 2] for i in xrange(m)])))
+    return F
+
+
+def l1tf(y, alpha, period=0,eta=1.0, with_l1p=False, beta=0.0):
     # scaling things to standardized size
     y_min = float(y.min())
     y_max = float(y.max())
@@ -29,7 +42,7 @@ def l1tf(y, alpha, period=0,eta=1.0, with_l1p=False):
     if with_l1p:
         solution = l1tf_cvxopt_l1p(matrix(y_scaled), alpha, period=period, eta=eta)
     else:
-        solution = l1tf_cvxopt(matrix(y_scaled), alpha, period=period, eta=eta)
+        solution = l1tf_cvxopt(matrix(y_scaled), alpha, period=period, eta=eta, beta=beta)
 
     #convert back to unscaled, numpy arrays
     for k, v in solution.iteritems():
@@ -39,11 +52,19 @@ def l1tf(y, alpha, period=0,eta=1.0, with_l1p=False):
     return solution
 
 
-def l1tf_cvxopt(y, alpha, period=0, eta=1.0):
+def l1tf_cvxopt(y, alpha, period=0, eta=1.0, beta=0.0):
     n = y.size[0]
     m = n - 2
 
     D = get_second_derivative_matrix(n)
+    if beta > 0:
+        #put a penalty on the l1 norm of the first dervative as well
+        F = get_first_derivative_matrix(n)
+        D_F = zero_spmatrix(2*m, n)
+        D_F[:m, :n] = D
+        D_F[m:, :n] = F * beta
+        D = D_F
+        m *= 2
 
     P = D * D.T
     if period > 0:
