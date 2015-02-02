@@ -30,7 +30,61 @@ def get_first_derivative_matrix(n):
     return F
 
 
-def l1tf(y, alpha, period=0,eta=1.0, with_l1p=False, beta=0.0):
+def get_second_derivative_matrix_nes(x):
+    """
+    Get the second derivative matrix for non-equally spaced points
+    :param n: The size of the time series
+    :return: A matrix D such that if x.size == (n,1), D * x is the second derivative of x
+    assumes points are sorted
+    """
+    n = len(x)
+    m = n - 2
+
+    values = []
+    for i in xrange(1, n-1):
+        a0 = float(x[i+1] - x[i])
+        a1 = float(x[i+1] - x[i-1])
+        a2 = float(x[i] - x[i-1])
+        a = a0 * a1 * a2
+        assert (a0 >= 0) and (a1 >= 0) and (a2 >= 0), "Points do not appear to be sorted"
+        assert a != 0, "Second derivative doesn't exist for repeated points"
+        vals = [2.0/(a1*a2), -2.0/(a0*a2), 2.0/(a0*a1)]
+        values.extend(vals)
+
+    D = spmatrix(values,
+                 list(chain(*[[i] * 3 for i in xrange(m)])),
+                 list(chain(*[[i, i + 1, i + 2] for i in xrange(m)])))
+    return D
+
+
+def get_first_derivative_matrix_nes(x):
+    """
+    Get the first derivative matrix for non-equally spaced points
+    :param n: The size of the time series
+    :return: A matrix D such that if x.size == (n,1), D * x is the second derivative of x
+    assumes points are sorted
+    """
+    n = len(x)
+    m = n - 2
+
+    values = []
+    for i in xrange(1, n-1):
+        a0 = float(x[i+1] - x[i])
+        a1 = float(x[i+1] - x[i-1])
+        a2 = float(x[i] - x[i-1])
+        a = a0 * a1 * a2
+        assert (a0 >= 0) and (a1 >= 0) and (a2 >= 0), "Points do not appear to be sorted"
+        assert a != 0, "Second derivative doesn't exist for repeated points"
+        vals = [(x[i]-x[i+1])/(a1*a2), (x[i-1]+x[i+1]-2.0*x[i])/(a0*a2), (x[i]-x[i-1])/(a0*a1)]
+        values.extend(vals)
+
+    D = spmatrix(values,
+                 list(chain(*[[i] * 3 for i in xrange(m)])),
+                 list(chain(*[[i, i + 1, i + 2] for i in xrange(m)])))
+    return D
+
+
+def l1tf(y, alpha, period=0, eta=1.0, with_l1p=False, beta=0.0):
     # scaling things to standardized size
     y_min = float(y.min())
     y_max = float(y.max())
