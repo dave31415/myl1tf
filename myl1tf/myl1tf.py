@@ -19,7 +19,7 @@ def get_second_derivative_matrix(n):
 
 def get_first_derivative_matrix(n):
     """
-    :param n: The size of the time series
+    :param x:  numpy array of x-values
     :return: A matrix D such that if x.size == (n,1), D * x is the first derivative of x
     :symmetric first derivative (excludes endpoints like as before)
     """
@@ -33,7 +33,7 @@ def get_first_derivative_matrix(n):
 def get_second_derivative_matrix_nes(x):
     """
     Get the second derivative matrix for non-equally spaced points
-    :param n: The size of the time series
+    :param : x numpy array of x-values
     :return: A matrix D such that if x.size == (n,1), D * x is the second derivative of x
     assumes points are sorted
     """
