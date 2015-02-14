@@ -4,16 +4,21 @@
 
 \begin{document}
 
-\title{Extensions of L1 Trend Filtering: Seasonality and Outlier Modeling
-with $l_1$ and $l_2$ Regularization}
+\title{Extensions of L1 Trend Filtering: Seasonality, Outlier Modeling
+and Other Effects with $l_1$ and $l_2$ Regularization}
 \author{David Johnston}
 
 \maketitle
 
 \begin{abstract}
 This paper extends and further elucidates ideas from Kim, Koh \& Boyd for L1 regularized
-trend filtering and acts a documentation to a repository of a python
-implementation using the cvxopt library which can be found at https://github.com/dave31415/myl1tf
+trend filtering and gives explicit formulas for reducing these problems down to
+quadratic and linear programming problems that can be solved with various widely available
+convex optimization libraries. We include seasonality effects with both
+$l_1$ and $l_2$ regularization, outlier modeling, sparse level changes and
+unequally spaced points. This paper also acts a documentation for the formulas used
+in our open source python library \emph{myl1tf}
+\footnote{https://github.com/dave31415/myl1tf}.
 \end{abstract}
 
 \section{The primary and dual quadratic programming problems}
@@ -80,7 +85,11 @@ we can write $s = B T p \equiv Q p$. By doing this we can rewrite the optimizati
 \mbox{minimize} & \frac{1}{2} ~ || y - x - Q p||_2^2  + \lambda ||z||_1 \\
 \mbox{subject to} & z = D x
 \end{eqnarray}
-with the $p \in \mathbf{R}^{(P-1)}$ now unconstrained. To improve stabilization and allow more control over $p$, we will add
+with the $p \in \mathbf{R}^{(P-1)}$ now unconstrained.
+
+\subsection{Seasonality with $l_2$ regularization}
+
+To improve stabilization and allow more control over $p$, we will add
 a $l_2$ regularization constraint and write our problem.
 \begin{eqnarray}
 \mbox{minimize} & \frac{1}{2} ~ || y - x - Q p||_2^2  + \lambda ||z||_1 + \eta ~ \frac{1}{2} \tilde{p}^T \tilde{p}\\
@@ -115,14 +124,14 @@ and the gradients of $L$ are
 
 
 Setting $\nabla_x L$ =0 yields the equation.
-\[
-y - x - Qp = D^T \nu \label{residual}
-\] or
+\begin{equation}
+y - x - Qp = D^T \nu \label{eq:residual}
+\end{equation}
+or
 \[
 x = y - Qp - D^T \nu
 \]
-Equation \ref{residual} shows that $D^T \nu$ is the residual.
-
+Equation \ref{eq:residual} shows that $D^T \nu$ is the residual.
 Setting $\nabla_p L$ =0 yields
 \[
 p = \eta^{-1} H^{-1} Q^T D^T \nu
@@ -157,14 +166,14 @@ $p \rightarrow 0$ and we recover the same solution as before for $x$. We cannot 
 the other limit $\eta = 0$, though we will address that in a later section. However there is no problem setting
 $\eta$ to a neglibly small number and applying these formula.
 
-\section{Seasonality using $l_1$ regularization}
+\subsection{Seasonality using $l_1$ regularization}
 We can also use an $l_1$ regularization term on the seasonality terms $p$ which will result in
 sparse solutions for $p$. That is, with a well chosen regularization parameter,
 no seasonality will be used when it isn't really required. This might be more useful than the $l_2$
 regularization described above though the solution is a little more complicated.
 
 The situation for $l_1$ regularization is similar to the above for the $x$ coordinate and leads to the
-same Equation \ref{residual} for the residual. Submitting this solution for $x$ in terms of $\nu$ and $p$
+same Equation \ref{eq:residual} for the residual. Submitting this solution for $x$ in terms of $\nu$ and $p$
 leads to an optimization problem for $\nu$ and $p$ as follows
 
 \begin{eqnarray}
@@ -238,7 +247,7 @@ and write this as
 This is now in the form of a well known problem, the Least Absolute Deviation (LAD) problem and can be written as a
 a linear program. The cvxopt library contains a program for solving this problem. Thus,
 we can solve for $\nu$ by solving the quadratic programming problem and then solve this equation for $p$ and then
-use Equation \ref{residual} to solve for $x$.
+use Equation \ref{eq:residual} to solve for $x$.
 
 \section{Modeling outliers and step functions for more robust fits}
 KKB also suggest including outliers by adding terms $u$ to the model with a strong $l_1$ regularization. This will
@@ -270,21 +279,51 @@ D Q  & D   \\
 \\
 \hline
 & \\
-(\eta/\lambda) T & 0_n \\
+(\eta/\lambda) T & 0_{P \times n} \\
 \\
 \hline
 & \\
-0_p, & (\delta/\lambda) I_n \\
+0_{n \times P-1}, & (\delta/\lambda) I_n \\
 \end{array}\right]
 \end{equation}
 
 \subsection{Step functions}
 
-Rather than spikes we can also consider step functions. The solution is nearly identical to the
-above except that we replace matrix $D$ in the upper right hand corner with $D H$ where
-$H$ is the matrix with 1 in it's upper triangle and diagonal and zero in it's lower triangle.
+Rather than spikes ($\delta$-functions) we can also consider step functions (or Heaviside functions).
+The solution is nearly identical to the above except that we replace matrix $D$ in the upper right
+hand corner with $D H$ where $H$ is the matrix with 1 in it's upper triangle and diagonal and zero
+in it's lower triangle. This is because step functions are simply cumulative sums of delta functions.
 
-Or with both spikes $u$ and step function transitions $h$. 
+With both spikes $u$ and step function transitions $h$ (regularized by $\gamma$), we can write the
+equations
+
+\begin{eqnarray}
+z & = & [p , u, h]^T\\
+w & = & [D (y - D^T \nu), 0, 0, 0]^T \\
+\end{eqnarray}
+and $F$ specified by matrix blocks
+\begin{equation}
+F=\left[
+\begin{array}{c|c|c}
+D Q  & D  & D H \\
+&\\
+\hline
+&\\
+(\eta/\lambda) T & 0_{P \times n} & 0_{P \times n}\\
+&\\
+\hline
+&\\
+0_{n \times P-1} & (\delta/\lambda) I_n & 0_{n}\\
+&\\
+\hline
+&\\
+0_{n \times P-1} & 0_n & (\gamma/\lambda) I_n \\
+\end{array}\right]
+\end{equation}
+
+By now, one should notice the pattern that adding any new $l_1$ regularization
+terms simply requires a modification of the above equations which just requires
+that one express the intentions in matrix form.
 
 
 \section{Implementation}
@@ -337,7 +376,7 @@ and second derivative is
 \end{eqnarray}
 
 We are only interested in evaluating these at the middle point $x=x_2$. The second derivative is
-indpendent on $x$ anyway but the first derivative evalued at $x=x_2$ is
+indpendent of $x$ anyway but the first derivative evalued at $x=x_2$ is
 
 \begin{eqnarray}
 \frac{dP}{dx}(x=x_2) & = & y_1 \frac{\left(x_2-x_3 \right)}{\left(x_1-x_2\right)\left(x_1-x_3\right)} \nonumber \\
@@ -354,6 +393,12 @@ usual formulas for finite difference derivatives,
 $F = BlockDiag((-0.5,0,0.5))$ and $D = BlockDiag((1,-2,1))$. These results for unequally spaced
 points should give results exactly equal to analytical calculations when evaluated on quadratic, linear
 or constant functions. These two facts provides a useful test for any implementation.
+
+\section{References}
+S.-J. Kim, K. Koh, S. Boyd, and D. Gorinevsky
+SIAM Review, problems and techniques section, 51(2):339–360, May 2009.\\
+http://stanford.edu/\~boyd/papers/pdf/l1\_trend\_filter.pdf
+
 
 \end{document}
 
