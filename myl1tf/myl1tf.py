@@ -56,6 +56,19 @@ def get_second_derivative_matrix_nes(x):
                  list(chain(*[[i, i + 1, i + 2] for i in xrange(m)])))
     return D
 
+def get_step_function_matrix(n):
+    """
+    Upper triangular with all ones
+    :param n:
+    :return:
+    """
+
+    step = identity_spmatrix(n)
+    for i in xrange(n):
+        for j in xrange(n):
+            if i > j:
+                step[i, j] = 1.0
+    return step
 
 def get_first_derivative_matrix_nes(x):
     """

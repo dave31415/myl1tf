@@ -206,14 +206,14 @@ the first $\chi^2$ term is now constant
 and so we need to optimize the sum of regularization terms by themselves
 
 \begin{eqnarray}
-\mbox{minimize} & ||D x||_1 + (\lambda / \eta) ||T_p||_1 \\
+\mbox{minimize} & ||D x||_1 + (\eta / \lambda) ||T p||_1 \\
 \mbox{subject to} & y - x - Qp = D^T \nu \\
 \end{eqnarray}
 
 which we can write solely in terms of $p$ as
 
 \begin{eqnarray}
-\mbox{minimize over} ~p : & ||D (y - D^T \nu - Q p)||_1 + (\lambda / \eta) ||T_p||_1 \\
+\mbox{minimize over} ~p : & ||D (y - D^T \nu - Q p)||_1 + (\eta/\lambda) ||T p||_1 \\
 \end{eqnarray}
 
 The trick to solving this is to combine these into a larger vector space
@@ -224,9 +224,9 @@ and the $F$ matrix defined by two matrix blocks
 \begin{equation}
 F=\left[
 \begin{array}{c}
-Q  \\
+D Q  \\
 \hline
-(\lambda/\eta) T \\
+(\eta/\lambda) T \\
 \end{array}\right]
 \end{equation}
 
@@ -240,7 +240,7 @@ a linear program. The cvxopt library contains a program for solving this problem
 we can solve for $\nu$ by solving the quadratic programming problem and then solve this equation for $p$ and then
 use Equation \ref{residual} to solve for $x$.
 
-\section{Modeling outliers for more robust fits}
+\section{Modeling outliers and step functions for more robust fits}
 KKB also suggest including outliers by adding terms $u$ to the model with a strong $l_1$ regularization. This will
 result in a sparse solution for the $u$ values which can model things like spikes without throwing off the other terms.
 These can be treated just like the $l_1$ regularized seasonality and will result in the same quadratic programming
@@ -250,7 +250,7 @@ regularization parameter for the $u$ vector.
 As before, we end up with a solution for $\nu$ and must still solve the LAD problem to get separate solutions for
 $x, p$ and $u$.
 \begin{eqnarray}
-\mbox{minimize over} ~p : & ||D (y - D^T \nu - Q p - u)||_1 + (\lambda / \eta) ||T_p||_1 + \delta/\lambda ||u||_1 \\
+\mbox{minimize over} ~p,u : & ||D (y - D^T \nu - Q p - u)||_1 + (\lambda / \eta) ||T p||_1 + \delta/\lambda ||u||_1 \\
 \end{eqnarray}
 
 We can employ the same trick as before and write this as a single LAD problem on a larger vector space.
@@ -266,11 +266,11 @@ and $F$ specified by matrix blocks
 \begin{equation}
 F=\left[
 \begin{array}{c|c}
-Q  & I_n   \\
+D Q  & D   \\
 \\
 \hline
 & \\
-(\lambda/\eta) T & 0_n \\
+(\eta/\lambda) T & 0_n \\
 \\
 \hline
 & \\
@@ -278,14 +278,22 @@ Q  & I_n   \\
 \end{array}\right]
 \end{equation}
 
+\subsection{Step functions}
+
+Rather than spikes we can also consider step functions. The solution is nearly identical to the
+above except that we replace matrix $D$ in the upper right hand corner with $D H$ where
+$H$ is the matrix with 1 in it's upper triangle and diagonal and zero in it's lower triangle.
+
+Or with both spikes $u$ and step function transitions $h$. 
+
 
 \section{Implementation}
 The Githib repository https://github.com/dave31415/myl1tf contains an implementation for this
 L1TF modeling with seasonality. This was a fork of the repository
 https://github.com/elsonidoq/py-l1tf by Pablo Zivic which implements the
-simpler version without seasonality. Both versions are in python and
-use the python cvxopt library to solve the quadratic programming problems. Our
-version contains some test programs. For example, the following command,
+simpler version without seasonality and other effects. Both versions are in python and
+use the python cvxopt library to solve the convex optimization problems. Our
+version contains some test programs as well. For example, the following command,
 \begin{verbatim}
 test_myl1tf.test_l1tf_on_mock_with_period(period=6, eta=1.0,alpha=0.5)
 \end{verbatim}
