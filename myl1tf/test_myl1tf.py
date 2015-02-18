@@ -2,6 +2,8 @@ import myl1tf
 import numpy as np
 from matplotlib import pylab as plt
 import cvxopt
+import matrix_utils as mu
+from l1_everything import l1_fit
 
 doplot = False
 
@@ -35,6 +37,44 @@ def make_l1tf_mock(doplot=doplot, period=6, sea_amp=0.05, noise=0.0):
         plt.plot(x, y_with_seasonal, marker='o', linestyle='-', label=lab, markersize=8, alpha=0.3,color='red')
 
     return {'x': x, 'y': y, 'y_with_seasonal': y_with_seasonal, 'seas_lookup': seas_lookup}
+
+
+def make_l1tf_mock2(doplot=doplot, period=6, sea_amp=0.05, noise=0.0):
+    np.random.seed(3733)
+    num = 100
+    x = np.arange(num)
+    y = x * 0.0
+    y[0:20] = 20.0 + x[0:20] * 1.5
+    y[20:50] = y[19] - (x[20:50] - x[19]) * 0.2
+    y[50:60] = y[49] + (x[50:60] - x[49]) * 0.47
+    y[60:75] = y[59] - (x[60:75] - x[59]) * 2.4
+    y[75:] = y[74] + (x[75:] - x[74]) * 2.0
+    y = y+ (x < 30.0)*47.0
+    y = y / y.max()
+    y[85] = y[85]*6.333
+
+    y = y + noise * np.random.randn(num)
+    if period > 0:
+        seas = np.random.randn(period) * sea_amp
+        seas_lookup = {k: v for k, v in enumerate(seas)}
+        seasonal_part = np.array([seas_lookup[i % period] for i in x])
+        seasonal_part = seasonal_part - seasonal_part.mean()
+        y_with_seasonal = y + seasonal_part
+    else:
+        y_with_seasonal = y
+
+    if doplot:
+
+        plt.clf()
+        lab='True, period=%s' % period
+        plt.plot(x, y, marker='o', linestyle='-', label=lab, markersize=8, alpha=0.3,color='blue')
+        lab='True + seasonality, period=%s' % period
+        plt.plot(x, y_with_seasonal, marker='o', linestyle='-', label=lab, markersize=8, alpha=0.3,color='red')
+
+    return {'x': x, 'y': y, 'y_with_seasonal': y_with_seasonal, 'seas_lookup': seas_lookup}
+
+
+
 
 def assert_is_good(resid, mean_resid_max=1e-9, mean_abs_resid_max=0.1, max_abs_resid_max =0.15):
     #general form of test on residuals
@@ -101,17 +141,14 @@ def test_l1tf_on_mock_with_period_l1p(alpha=1.0, period=6, eta=0.1, sea_amp=0.05
         plt.show()
 
 
-def test_l1tf_on_mock_with_period_l1p_with_spike(alpha=0.5, period=6, eta=0.1,
+def test_l1tf_on_mock_with_period_l1p_with_spike_and_step(alpha=0.5, period=6, eta=0.1,
                     doplot=doplot, sea_amp=0.05):
     #no test for this yet
-    return
 
     if doplot:
         plt.clf()
-    mock = make_l1tf_mock(period=period, sea_amp=sea_amp)
+    mock = make_l1tf_mock2(period=period, sea_amp=sea_amp)
     y = mock['y_with_seasonal']
-    num = len(y)
-    y[num/2] += 3.0
     ymax=max(y)
     l1tf_fit = myl1tf.l1tf(y, alpha=alpha, period=period, eta=eta, with_l1p=True)
     if doplot:
@@ -211,6 +248,7 @@ def test_first_derivative_nes_is_constant_for_line():
     slope_expected = cvxopt.matrix(slope_expected)
     assert max(abs(slope-slope_expected)) < 1e-13
 
+
 def test_second_derivative_nes_is_zero_for_line():
     n = 13
     x = np.arange(n)
@@ -220,5 +258,34 @@ def test_second_derivative_nes_is_zero_for_line():
     assert max(abs(slope)) < 1e-13
 
 
+def test_get_B_matrix_nes_aggrees_with_es():
+    n = 27
+    period = 5
+    B_nes = mu.get_B_matrix_nes(np.arange(n), period)
+    B_es = mu.get_B_matrix(n, period)
+
+    diff = B_nes-B_es
+    max_diff = max(abs(diff))
+    assert max_diff < 1e-13
 
 
+def test_get_B_matrix_nes_on_gap():
+    x = np.array([0, 2, 3, 5])
+    period = 3
+    B_nes = mu.get_B_matrix_nes(x, period)
+    expected_matrix = [[1, 0, 0], [0, 0, 1], [1, 0, 0], [0, 0, 1]]
+    expected_result = cvxopt.sparse(cvxopt.matrix(expected_matrix).T)
+    assert max(B_nes - expected_result) < 1e-13
+
+def test_l1_fit(beta_d2=4.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=2.5, period=12):
+    mock = make_l1tf_mock2()
+    y = mock['y_with_seasonal']
+    xx = mock['x']
+    plt.clf()
+    plt.plot(xx, y, linestyle='-', marker='o', markersize=4)
+    sol = l1_fit(xx, y, beta_d2=beta_d2, beta_d1=beta_d1, beta_seasonal=beta_seasonal, beta_step=beta_step, period=period)
+    plt.plot(xx, sol['xbase'], label='base')
+    plt.plot(xx, sol['steps'], label='steps')
+    plt.plot(xx, sol['seas'], label='seasonal')
+    plt.plot(xx, sol['x'], label='full')
+    plt.legend(loc='upper left')

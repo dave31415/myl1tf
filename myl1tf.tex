@@ -34,6 +34,8 @@ The first is an $l_2$ norm and the second an $l_1$ norm. The Lagrangian, with a 
 \[
 L(x,z,\nu) =  || y - x ||_2^2  + \lambda ||z||_1 + \nu^T (D x -z)
 \]
+
+
 The dual function is
 \[
 \mbox{inf}_{x,z} ~ L(x,z,\nu) =
@@ -44,7 +46,19 @@ The dual function is
   \end{array}
   \right.
 \]
-and so the dual problem is
+
+since
+
+\begin{equation}
+\sup_\nu \inf_z \left(-\nu^T z + \lambda ||z||_1 \right) =
+\left\{
+    \begin{array}{ll}
+   0 ~\mbox{if}~ |\nu| < \lambda \\
+  -\infty  & \mbox{otherwise.} \\
+  \end{array}
+  \right. \label{eq:supinf}
+\end{equation}
+(see appendix for proof) and so the dual problem is
 
 \begin{eqnarray}
 \mbox{maximize} & -\frac{1}{2} ~ \nu^T D D^T \nu + y^T D^T \nu \\
@@ -148,8 +162,8 @@ solutions for $x$ and $p$.
 The more subtle minimization w.r.t. $z$ will result in the same constraint in the dual problem as before. The reader
 should ensure that they understand how the terms $\lambda ||z||_1 - \nu^T z$ result in the constraint
 $- \lambda \mathbf{1} < \nu < \lambda \mathbf{1}$. One can show that outside of this range, the $inf_z$ of this term
-is $-\infty$ (at either $z = \pm \infty$) and within is 0 (at $z=0$) and so any supremum for $\nu$
-must lie within.
+is $-\infty$ (at either $z = \pm \infty$) and within is 0 (at $z=0$) (see appendix) and so any supremum for $\nu$
+must lie within $|\nu| < \lambda$.
 
 We then construct the dual problem by plugging these solutions into the Lagrangian and we arrive at
 \begin{eqnarray}
@@ -325,6 +339,56 @@ By now, one should notice the pattern that adding any new $l_1$ regularization
 terms simply requires a modification of the above equations which just requires
 that one express the intentions in matrix form.
 
+\section{L1 norms for everything}
+
+Rather than using an $l_2$ on the residual we can use an $l_1$ term for this and so use
+$l_1$ norms for everything. An $l_1$ norm on the residual is another way of giving less
+weight to outliers. It also simplified the solution as there is no quadratic programming
+problems to solve. We can use the same trick of writng the whole optimization as a single
+LAD problem in a higher dimensional space.
+
+Minimize the following for $x$, $p$ and $h$:
+\begin{equation}
+||y - x - Q p -H h||_1 + \lambda_2 ||D_2 x|| + \lambda_1 ||D_1 x - g||
++ \eta ||T p||_1 + \delta ||h||_1
+\end{equation}
+
+Here we are considering first and second derivatives: matrices $D_1$ and $D_2$ plus the seaosnality
+term and level changes. In addition we allow for $g$ a non-zero preferred first derivative. As before
+we can write this as a single LAD problem:
+\[
+\mbox{minimize over}~ z :  ||w-F z||_1 \\
+\]
+where
+
+\begin{eqnarray}
+z & = & [x, p , h]^T\\
+w & = & [y, g, 0, 0, 0]^T \\
+\end{eqnarray}
+and $F$ specified by matrix blocks
+\begin{equation}
+F=\left[
+\begin{array}{c|c|c}
+I_n  & Q  & H \\
+&\\
+\hline
+&\\
+-\lambda_1 D_1 & 0_{m \times (P-1)} & 0_{m \times n}\\
+&\\
+\hline
+&\\
+-\lambda_2 D_2 & 0_{m \times (P-1)} & 0_{m \times n}\\
+&\\
+\hline
+&\\
+0_{P \times n} & -\eta T & 0_{P \times n} \\
+&\\
+\hline
+&\\
+0_{n} & 0_{n \times (P-1)} & -\delta I_n
+\end{array}\right]
+\end{equation}
+
 
 \section{Implementation}
 The Githib repository https://github.com/dave31415/myl1tf contains an implementation for this
@@ -393,6 +457,35 @@ usual formulas for finite difference derivatives,
 $F = BlockDiag((-0.5,0,0.5))$ and $D = BlockDiag((1,-2,1))$. These results for unequally spaced
 points should give results exactly equal to analytical calculations when evaluated on quadratic, linear
 or constant functions. These two facts provides a useful test for any implementation.
+
+\subsection{Proof of Equation \ref{eq:supinf}}
+
+We wish to prove that
+\begin{equation}
+\sup_\nu \inf_z \left(-\nu^T z + \lambda ||z||_1 \right) =
+\left\{
+    \begin{array}{ll}
+   0 ~\mbox{if}~ |\nu| < \lambda \\
+  -\infty  & \mbox{otherwise.} \\
+  \end{array}
+  \right.
+\end{equation}
+
+Note that this equation is proven if we prove it for each component that is summed so
+we can drop vector notation and treat them as scalars.
+
+First define $f(\nu) = \inf_z \left(-\nu z + \lambda |z| \right)$. Notice the important fact
+that $f(\nu) = f(-\nu)$ because if the $\inf$ is achieved at $z$ for some $\nu$ then the same
+$\inf$ can be achieved at $-z$ for $-\nu$. Thus it is symmetric in $\nu$, $f(\nu) = f(|\nu|)$.
+Note also that $f(0) = 0.$
+
+Now let's consider the case $|\nu| \le \lambda$. Clearly $\nu z \le |\nu z|$ so
+$f(\nu) = \inf_z \left(-\nu z + \lambda |z| \right) \ge  \inf_z \left(|z| (-|\nu| + \lambda) \right)
+\ge 0$. So $f(\nu) = 0$.
+
+Now consider the other case $|\nu| > \lambda$. Now for any positive $z$,
+$f(\nu) < \left((-\nu + \lambda) |z| \right)$ which has $inf_z = -\infty$.
+
 
 \section{References}
 S.-J. Kim, K. Koh, S. Boyd, and D. Gorinevsky
