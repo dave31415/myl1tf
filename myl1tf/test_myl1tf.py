@@ -36,11 +36,12 @@ def make_l1tf_mock(doplot=doplot, period=6, sea_amp=0.05, noise=0.0):
         lab='True + seasonality, period=%s' % period
         plt.plot(x, y_with_seasonal, marker='o', linestyle='-', label=lab, markersize=8, alpha=0.3,color='red')
 
+    np.random.seed(None)
     return {'x': x, 'y': y, 'y_with_seasonal': y_with_seasonal, 'seas_lookup': seas_lookup}
 
 
-def make_l1tf_mock2(doplot=doplot, period=6, sea_amp=0.05, noise=0.0):
-    np.random.seed(3733)
+def make_l1tf_mock2(doplot=doplot, period=6, sea_amp=0.05, noise=0.0, seed=3733):
+    np.random.seed(seed)
     num = 100
     x = np.arange(num)
     y = x * 0.0
@@ -54,6 +55,7 @@ def make_l1tf_mock2(doplot=doplot, period=6, sea_amp=0.05, noise=0.0):
     y[85] = y[85]*6.333
 
     y = y + noise * np.random.randn(num)
+
     if period > 0:
         seas = np.random.randn(period) * sea_amp
         seas_lookup = {k: v for k, v in enumerate(seas)}
@@ -71,6 +73,7 @@ def make_l1tf_mock2(doplot=doplot, period=6, sea_amp=0.05, noise=0.0):
         lab='True + seasonality, period=%s' % period
         plt.plot(x, y_with_seasonal, marker='o', linestyle='-', label=lab, markersize=8, alpha=0.3,color='red')
 
+    np.random.seed(None)
     return {'x': x, 'y': y, 'y_with_seasonal': y_with_seasonal, 'seas_lookup': seas_lookup}
 
 
@@ -277,8 +280,24 @@ def test_get_B_matrix_nes_on_gap():
     expected_result = cvxopt.sparse(cvxopt.matrix(expected_matrix).T)
     assert max(B_nes - expected_result) < 1e-13
 
-def test_l1_fit(beta_d2=4.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=2.5, period=12):
-    mock = make_l1tf_mock2()
+def test_l1_fit(beta_d2=4.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=2.5, period=12,noise=0, seed=3733):
+    mock = make_l1tf_mock2(noise=noise, seed=seed)
+    y = mock['y_with_seasonal']
+    xx = mock['x']
+    plt.clf()
+    plt.plot(xx, y, linestyle='-', marker='o', markersize=4)
+    sol = l1_fit(xx, y, beta_d2=beta_d2, beta_d1=beta_d1, beta_seasonal=beta_seasonal, beta_step=beta_step, period=period)
+    plt.plot(xx, sol['xbase'], label='base')
+    plt.plot(xx, sol['steps'], label='steps')
+    plt.plot(xx, sol['seas'], label='seasonal')
+    plt.plot(xx, sol['x'], label='full')
+    plt.legend(loc='upper left')
+
+def test_l1_fit_rand(beta_d2=4.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=2.5, period=12, noise=0, seed=3733):
+    print "seed=%s,noise=%s,beta_d2=%s,beta_d1=%s,beta_step=%s," \
+          "beta_seasonal=%s" % (seed,noise,beta_d2,beta_d1,beta_step,beta_seasonal)
+
+    mock = make_l1tf_mock2(noise=noise, seed=seed)
     y = mock['y_with_seasonal']
     xx = mock['x']
     plt.clf()
