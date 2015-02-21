@@ -99,7 +99,7 @@ def spmatrix2np(spmat):
     :param spmat: matrix or spmatrix
     :return: numpy 2D array of type float64
     """
-    return np.asarray(matrix(spmat))
+    return np.asarray(matrix(spmat)).squeeze()
 
 def np2spmatrix(nparray):
     """
@@ -208,3 +208,21 @@ def zero_spmatrix(n, m=None):
     if m is None:
         m = n
     return spmatrix(0.0, [n-1], [m-1])
+
+
+def get_step_function_reg(n, beta_step, permissives=None):
+    #step function regularization matrix
+    reg = -beta_step*identity_spmatrix(n)
+    if permissives is not None:
+        #these points may have more permissive regularization values
+        #for example where you expect jumps to be more natural
+        #such as at obvious boundaries
+        for point in permissives:
+            i, beta = point
+            reg[i, i] = -beta
+    return reg
+
+
+
+
+

@@ -4,6 +4,7 @@ from matplotlib import pylab as plt
 import cvxopt
 import matrix_utils as mu
 from l1_everything import l1_fit
+import time
 
 doplot = False
 
@@ -44,15 +45,22 @@ def make_l1tf_mock2(doplot=doplot, period=6, sea_amp=0.05, noise=0.0, seed=3733)
     np.random.seed(seed)
     num = 100
     x = np.arange(num)
-    y = x * 0.0
+    y = np.zeros(num)
     y[0:20] = 20.0 + x[0:20] * 1.5
     y[20:50] = y[19] - (x[20:50] - x[19]) * 0.2
     y[50:60] = y[49] + (x[50:60] - x[49]) * 0.47
     y[60:75] = y[59] - (x[60:75] - x[59]) * 2.4
     y[75:] = y[74] + (x[75:] - x[74]) * 2.0
-    y = y+ (x < 30.0)*47.0
+    #add two steps
+    y = y+ (x <= 30.0)*97.0
+    y = y+ (x >85)*87.0
+    #add a spike
+    y[75] *=16.333
+    y=y+x*0.4
+
     y = y / y.max()
-    y[85] = y[85]*6.333
+
+
 
     y = y + noise * np.random.randn(num)
 
@@ -293,18 +301,119 @@ def test_l1_fit(beta_d2=4.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=2.5, peri
     plt.plot(xx, sol['x'], label='full')
     plt.legend(loc='upper left')
 
-def test_l1_fit_rand(beta_d2=4.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=2.5, period=12, noise=0, seed=3733):
-    print "seed=%s,noise=%s,beta_d2=%s,beta_d1=%s,beta_step=%s," \
-          "beta_seasonal=%s" % (seed,noise,beta_d2,beta_d1,beta_step,beta_seasonal)
+def test_get_step_function_reg():
+    reg = mu.get_step_function_reg(5, 8.0, permissives=None)
+    for i in range(5):
+        for j in range(5):
+            if i != j:
+                assert reg[i, j] == 0.0
+            else:
+                assert reg[i, j] == -8.0
 
-    mock = make_l1tf_mock2(noise=noise, seed=seed)
+    reg = mu.get_step_function_reg(5, 8.0, permissives=[(2, 7.0), (1, 3.5), (3, 4.5)])
+    for i in range(5):
+        for j in range(5):
+            if i != j:
+                assert reg[i, j] == 0.0
+            else:
+                assert reg[i, j] == [-8.0, -3.5, -7.0, -4.5, -8.0][i]
+
+def test_l1_fit_rand(beta_d2=4.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=2.5,
+                     period=12, noise=0, seed=3733,doplot=True, sea_amp=0.05):
+    #print "seed=%s,noise=%s,beta_d2=%s,beta_d1=%s,beta_step=%s," \
+    #      "beta_seasonal=%s" % (seed,noise,beta_d2,beta_d1,beta_step,beta_seasonal)
+
+    mock = make_l1tf_mock2(noise=noise, seed=seed, sea_amp=sea_amp)
     y = mock['y_with_seasonal']
     xx = mock['x']
-    plt.clf()
-    plt.plot(xx, y, linestyle='-', marker='o', markersize=4)
-    sol = l1_fit(xx, y, beta_d2=beta_d2, beta_d1=beta_d1, beta_seasonal=beta_seasonal, beta_step=beta_step, period=period)
-    plt.plot(xx, sol['xbase'], label='base')
-    plt.plot(xx, sol['steps'], label='steps')
-    plt.plot(xx, sol['seas'], label='seasonal')
-    plt.plot(xx, sol['x'], label='full')
-    plt.legend(loc='upper left')
+
+    sol = l1_fit(xx, y, beta_d2=beta_d2, beta_d1=beta_d1,
+                 beta_seasonal=beta_seasonal, beta_step=beta_step,
+                 period=period)
+
+    if doplot:
+        plt.clf()
+        plt.plot(xx, y, linestyle='-', marker='o', markersize=4)
+        plt.plot(xx, sol['xbase'], label='base')
+        plt.plot(xx, sol['steps'], label='steps')
+        plt.plot(xx, sol['seas'], label='seasonal')
+        plt.plot(xx, sol['x'], label='full')
+        plt.legend(loc='upper left')
+
+
+def test_l1_fit_rand_with_permissive(beta_d2=4.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=2.5,
+                     period=12, noise=0, seed=3733,doplot=True, sea_amp=0.05):
+    #print "seed=%s,noise=%s,beta_d2=%s,beta_d1=%s,beta_step=%s," \
+    #      "beta_seasonal=%s" % (seed,noise,beta_d2,beta_d1,beta_step,beta_seasonal)
+
+    mock = make_l1tf_mock2(noise=noise, seed=seed, sea_amp=sea_amp)
+    y = mock['y_with_seasonal']
+    xx = mock['x']
+
+    step_permissives=[(30, 0.5)]
+    sol = l1_fit(xx, y, beta_d2=beta_d2, beta_d1=beta_d1,
+                 beta_seasonal=beta_seasonal, beta_step=beta_step,
+                 period=period, step_permissives=step_permissives)
+
+    if doplot:
+        plt.clf()
+        plt.plot(xx, y, linestyle='-', marker='o', markersize=4)
+        plt.plot(xx, sol['xbase'], label='base')
+        plt.plot(xx, sol['steps'], label='steps')
+        plt.plot(xx, sol['seas'], label='seasonal')
+        plt.plot(xx, sol['x'], label='full')
+        plt.legend(loc='upper left')
+
+
+def test_l1_fit_speed(beta_d2=4.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=2.5, period=12, n=50, num=100):
+    mock = make_l1tf_mock2()
+    y = mock['y_with_seasonal']
+    xx = mock['x']
+    start = time.time()
+    for i in xrange(num):
+        sol = l1_fit(xx[0:n], y[0:n], beta_d2=beta_d2, beta_d1=beta_d1, beta_seasonal=beta_seasonal, beta_step=beta_step, period=period)
+    fin = time.time()
+    runtime = fin-start
+    rate = num/runtime
+    print 'num: %s, runtime: %s seconds, rate: %s per sec for %s points' % (num, runtime, rate, n)
+    return runtime
+
+
+def test_l1_fit_linearity():
+    mock = make_l1tf_mock2(noise=0.05, seed=48457)
+    y = mock['y_with_seasonal']
+    xx = mock['x']
+
+    step_permissives=[(30, 0.5)]
+    sol = l1_fit(xx, y, period=6, step_permissives=step_permissives)
+
+    #some linear transformation should effect things only linearly
+    scale = 17.0
+    offset = -56.0
+    y = y*scale + offset
+
+    sol2 = l1_fit(xx, y, period=6, step_permissives=step_permissives)
+
+    x = sol['x']
+    x2 = sol2['x']
+    x_unscaled = (x2-offset)/scale
+    tol = 1e-10
+
+    assert abs(x-x_unscaled).max() < tol
+
+
+def test_l1_fit_step():
+    #test that the place of the step and the specification of the step
+    #permissive do not have a off-by-one error
+    #note our steps occur from right to left
+    #the first one (right to left) that has jumped is the place
+    #where h is non-zero
+    n = 55
+    xx = np.arange(n)
+    y = xx*0.0
+    y[xx <= 20] = 1000.0
+    #this means that y[20] includes the step-up and so 20 is where 'h' should be non-zero
+    sol = l1_fit(xx, y, beta_step=100.0, step_permissives=[(20, 0.1)])
+    print abs(sol['h'][19]) < 1e-10
+    print abs(sol['h'][21]) < 1e-10
+    print abs(sol['h'][20]-1000.0) < 1e-10

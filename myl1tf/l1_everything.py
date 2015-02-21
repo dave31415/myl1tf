@@ -3,7 +3,8 @@ import l1
 import numpy as np
 from cvxopt import spmatrix, matrix, sparse
 
-def l1_fit(index, y, beta_d2=1.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=5.0, period=12, growth=0.0):
+def l1_fit(index, y, beta_d2=1.0, beta_d1=1.0, beta_seasonal=1.0,
+           beta_step=5.0, period=12, growth=0.0, step_permissives=None):
     assert isinstance(y, np.ndarray)
     assert isinstance(index, np.ndarray)
     #x must be integer type for seasonality to make sense
@@ -29,21 +30,19 @@ def l1_fit(index, y, beta_d2=1.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=5.0,
     zero_p = spmatrix(growth, range(p), [0]*p)
     zero_n = spmatrix(growth, range(n), [0]*n)
 
+    step_reg = mu.get_step_function_reg(n, beta_step, permissives=step_permissives)
+
     F_matrix = sparse([
         [ident(n), -beta_d1*D1, -beta_d2*D2, zero(p, n), zero(n)],
         [Q, zero(m, p-1), zero(m, p-1), -beta_seasonal*T, zero(n, p-1)],
-        [H, zero(m, n), zero(m, n), zero(p, n), -beta_step*ident(n)]
+        [H, zero(m, n), zero(m, n), zero(p, n), step_reg]
     ])
 
     w_vector = sparse([
         mu.np2spmatrix(ys), gvec, zero_m, zero_p, zero_n
     ])
 
-    print 'sizes'
-    print F_matrix.size
-    print w_vector.size
-
-    solution_vector = np.asarray(l1.l1(matrix(F_matrix), matrix(w_vector)))
+    solution_vector = np.asarray(l1.l1(matrix(F_matrix), matrix(w_vector))).squeeze()
     #separate
     xbase = solution_vector[0:n]
     s = solution_vector[n:n+p-1]
@@ -57,10 +56,10 @@ def l1_fit(index, y, beta_d2=1.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=5.0,
     xbase = xbase*scaling + y_min
     s = s*scaling
     h = h*scaling
-    seas = np.asarray(Q*matrix(s))
-    steps = np.asarray(H*matrix(h))
+    seas = np.asarray(Q*matrix(s)).squeeze()
+    steps = np.asarray(H*matrix(h)).squeeze()
     x = xbase + seas + steps
 
-    solution = {'xbase': xbase, 'seas': seas, 'steps': steps, 'x': x}
+    solution = {'xbase': xbase, 'seas': seas, 'steps': steps, 'x': x, 'h': h, 's': s}
     return solution
 
