@@ -3,6 +3,14 @@ import l1
 import numpy as np
 from cvxopt import spmatrix, matrix, sparse
 
+
+def l1_fit_monthly(dates, y, **kwargs):
+    #wrapper that allows an numpy array of dates
+    #that will be converted to an index
+    #defined as months since Jan 2000. days are ignored
+    xx = mu.dates_to_index_monthly(dates)
+    return l1_fit(xx, y, **kwargs)
+
 def l1_fit(index, y, beta_d2=1.0, beta_d1=1.0, beta_seasonal=1.0,
            beta_step=5.0, period=12, growth=0.0, step_permissives=None):
     assert isinstance(y, np.ndarray)

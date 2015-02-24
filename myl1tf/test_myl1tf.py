@@ -3,10 +3,13 @@ import numpy as np
 from matplotlib import pylab as plt
 import cvxopt
 import matrix_utils as mu
-from l1_everything import l1_fit
+from l1_everything import l1_fit, l1_fit_monthly
 import time
+from l1 import l1
+from datetime import date
 
 doplot = False
+
 
 def make_l1tf_mock(doplot=doplot, period=6, sea_amp=0.05, noise=0.0):
     np.random.seed(3733)
@@ -85,8 +88,6 @@ def make_l1tf_mock2(doplot=doplot, period=6, sea_amp=0.05, noise=0.0, seed=3733)
     return {'x': x, 'y': y, 'y_with_seasonal': y_with_seasonal, 'seas_lookup': seas_lookup}
 
 
-
-
 def assert_is_good(resid, mean_resid_max=1e-9, mean_abs_resid_max=0.1, max_abs_resid_max =0.15):
     #general form of test on residuals
     mean_resid = resid.mean()
@@ -98,6 +99,7 @@ def assert_is_good(resid, mean_resid_max=1e-9, mean_abs_resid_max=0.1, max_abs_r
     assert mean_resid < mean_abs_resid_max
     assert mean_abs_resid < mean_abs_resid_max
     assert max_abs_resid < max_abs_resid_max
+
 
 def test_l1tf_on_mock(alpha=1.0, beta=0.0, noise=0.0, doplot=doplot):
     if doplot:
@@ -288,6 +290,7 @@ def test_get_B_matrix_nes_on_gap():
     expected_result = cvxopt.sparse(cvxopt.matrix(expected_matrix).T)
     assert max(B_nes - expected_result) < 1e-13
 
+
 def test_l1_fit(beta_d2=4.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=2.5, period=12,noise=0, seed=3733):
     mock = make_l1tf_mock2(noise=noise, seed=seed)
     y = mock['y_with_seasonal']
@@ -300,6 +303,7 @@ def test_l1_fit(beta_d2=4.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=2.5, peri
     plt.plot(xx, sol['seas'], label='seasonal')
     plt.plot(xx, sol['x'], label='full')
     plt.legend(loc='upper left')
+
 
 def test_get_step_function_reg():
     reg = mu.get_step_function_reg(5, 8.0, permissives=None)
@@ -317,6 +321,7 @@ def test_get_step_function_reg():
                 assert reg[i, j] == 0.0
             else:
                 assert reg[i, j] == [-8.0, -3.5, -7.0, -4.5, -8.0][i]
+
 
 def test_l1_fit_rand(beta_d2=4.0, beta_d1=1.0, beta_seasonal=1.0, beta_step=2.5,
                      period=12, noise=0, seed=3733,doplot=True, sea_amp=0.05):
@@ -417,3 +422,64 @@ def test_l1_fit_step():
     print abs(sol['h'][19]) < 1e-10
     print abs(sol['h'][21]) < 1e-10
     print abs(sol['h'][20]-1000.0) < 1e-10
+
+
+def test_l1():
+    np.random.seed(42)
+    m, n = 500, 100
+    P, q = cvxopt.normal(m, n), cvxopt.normal(m, 1)
+    u = l1(P, q)
+    qfit = P*u
+    residual = qfit-q
+    np.random.seed(None)
+    mean_abs_res = sum(abs(residual))/len(residual)
+    print 'mean abs residual: %s' % mean_abs_res
+    assert mean_abs_res < 1.0
+
+
+def test_gaps_work_on_line():
+    xx = np.arange(20, dtype=np.int64)
+    y = 3 * xx + 9
+    sol = l1_fit(xx, y)
+    xfit = sol['x']
+    #this one has a big gap
+    xx = np.array(range(7)+range(15, 20))
+    y = 3 * xx + 9
+    sol = l1_fit(xx, y)
+    xfit2 = sol['x']
+    for i, j in enumerate(xx):
+        diff = abs(xfit[j] - xfit2[i])
+        assert diff < 1e-6
+
+
+def test_same_result_with_offset_index():
+    xx = np.arange(20, dtype=np.int64)
+    y = 3 * xx + 9
+    sol1 = l1_fit(xx, y)
+    xfit1 = sol1['x']
+    xx= xx + 999
+    sol2 = l1_fit(xx, y)
+    xfit2 = sol2['x']
+    assert (xfit1 == xfit2).all()
+
+
+def test_dates_to_index_monthly():
+    dates = [date(2000, 1, 1), date(2000, 2, 27), date(2014, 1, 22),
+             date(1999, 12, 1), date(1998, 2, 15)]
+    index = mu.dates_to_index_monthly(dates)
+    print index
+    assert (index == np.array([0, 1, 12*14, -1, -23])).all()
+
+
+def test_l1_fit_monthly():
+    tol = 1e-12
+    xx = np.arange(4, dtype=np.int64)
+    y = 3 * xx + 9
+    sol1 = l1_fit(xx, y)
+    xfit1 = sol1['x']
+    xx = np.array([date(2014, 1, 2), date(2014, 2, 5), date(2014, 3, 17), date(2014, 4 ,1)])
+    sol2 = l1_fit_monthly(xx, y)
+    xfit2 = sol2['x']
+    diff = abs(xfit1 - xfit2).max()
+    assert diff < tol
+

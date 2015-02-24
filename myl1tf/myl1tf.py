@@ -134,4 +134,3 @@ def l1tf_cvxopt_l1p(y, alpha, period=0, eta=1.0):
 
 
 
-

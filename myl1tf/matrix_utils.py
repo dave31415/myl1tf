@@ -223,6 +223,46 @@ def get_step_function_reg(n, beta_step, permissives=None):
     return reg
 
 
+def dates_to_index1(dates):
+    #take an array of date objects and convert to an
+    #index with unit being the minimum difference between points
+    dynamic_range_max = 1e3
+    n = len(dates)
+    if n == 0:
+        raise ValueError("dates has zero length")
+    ordinals = np.array([date.toordinal() for date in dates])
+    ords = sorted(ordinals)
+    min_diff = 1e19
+    max_diff = -1e19
+    ord_min = min(ordinals)
+    for i in xrange(1, n):
+        diff = ords[i] - ords[i-1]
+        min_diff = min(min_diff, diff)
+        max_diff = max(max_diff, diff)
+    if min_diff == 0.0:
+        raise ValueError("Points cannot be duplicated")
+    dynamic_range = max_diff/min_diff
+    if dynamic_range > dynamic_range_max:
+        raise ValueError("dynamic_range %s too high, max=%s" % (dynamic_range, dynamic_range_max))
+    index = (ordinals - ord_min)/min_diff
+    index = index.round().astype('int64')
+    return index, ord_min, min_diff
+
+
+def date_to_index_monthly(date_in):
+    #months since Jan 2000, ignores the day
+    return 12*(date_in.year-2000) + (date_in.month-1)
+
+
+def dates_to_index_monthly(dates):
+    #months since Jan 2000, ignores the day
+    return np.array([date_to_index_monthly(d) for d in dates])
+
+
+
+
+
+
 
 
 
