@@ -34,9 +34,9 @@ def l1_fit(index, y, beta_d2=1.0, beta_d1=1.0, beta_seasonal=1.0,
     zero = mu.zero_spmatrix
     ident = mu.identity_spmatrix
     gvec = spmatrix(growth, range(m), [0]*m)
-    zero_m = gvec * 0.0
-    zero_p = spmatrix(growth, range(p), [0]*p)
-    zero_n = spmatrix(growth, range(n), [0]*n)
+    zero_m = spmatrix(0.0, range(p), [0]*m)
+    zero_p = spmatrix(0.0, range(p), [0]*p)
+    zero_n = spmatrix(0.0, range(n), [0]*n)
 
     step_reg = mu.get_step_function_reg(n, beta_step, permissives=step_permissives)
 
