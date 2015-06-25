@@ -17,3 +17,6 @@ http://web.stanford.edu/%7Egorin/papers/l1_trend_filter.pdf
 
 Requires numpy and cvxopt libraries
 matplotlib required to enable plotting
+
+To test (assuming you have nose installed) run
+nosetests myl1tf/test_myl1tf.py
