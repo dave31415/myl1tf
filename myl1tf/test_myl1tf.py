@@ -35,9 +35,9 @@ def make_l1tf_mock(doplot=doplot, period=6, sea_amp=0.05, noise=0.0):
     if doplot:
 
         plt.clf()
-        lab='True, period=%s' % period
+        lab ='True, period=%s' % period
         plt.plot(x, y, marker='o', linestyle='-', label=lab, markersize=8, alpha=0.3,color='blue')
-        lab='True + seasonality, period=%s' % period
+        lab = 'True + seasonality, period=%s' % period
         plt.plot(x, y_with_seasonal, marker='o', linestyle='-', label=lab, markersize=8, alpha=0.3,color='red')
 
     np.random.seed(None)
@@ -88,7 +88,7 @@ def make_l1tf_mock2(doplot=doplot, period=6, sea_amp=0.05, noise=0.0, seed=3733)
     return {'x': x, 'y': y, 'y_with_seasonal': y_with_seasonal, 'seas_lookup': seas_lookup}
 
 
-def assert_is_good(resid, mean_resid_max=1e-9, mean_abs_resid_max=0.1, max_abs_resid_max =0.15):
+def assert_is_good(resid, mean_abs_resid_max=0.1, max_abs_resid_max =0.15):
     #general form of test on residuals
     mean_resid = resid.mean()
     mean_abs_resid = abs(resid).mean()
@@ -108,7 +108,7 @@ def test_l1tf_on_mock(alpha=1.0, beta=0.0, noise=0.0, doplot=doplot):
     l1tf_fit = myl1tf.l1tf(mock['y'], alpha=alpha, beta=beta)
 
     resid = l1tf_fit['x'] - mock['y_with_seasonal']
-    assert_is_good(resid, mean_resid_max=1e-12, mean_abs_resid_max=0.035, max_abs_resid_max=0.1)
+    assert_is_good(resid, mean_abs_resid_max=0.035, max_abs_resid_max=0.1)
 
     if doplot:
         plt.plot(mock['x'], l1tf_fit['x'], marker='o', linestyle='-', label='L1TF, alpha=%s' % alpha)
@@ -123,7 +123,7 @@ def test_l1tf_on_mock_with_period(alpha=1.0, period=6, eta=1.0, doplot=doplot):
     l1tf_fit = myl1tf.l1tf(mock['y_with_seasonal'], alpha=alpha, period=period, eta=eta)
 
     resid = l1tf_fit['x'] - mock['y_with_seasonal']
-    assert_is_good(resid, mean_resid_max=6e-4, mean_abs_resid_max=0.035, max_abs_resid_max=0.1)
+    assert_is_good(resid, mean_abs_resid_max=0.035, max_abs_resid_max=0.1)
 
     if doplot:
         lab = 'L1TF, period=%s, alpha=%s, eta=%s' % (period, alpha, eta)
@@ -142,7 +142,7 @@ def test_l1tf_on_mock_with_period_l1p(alpha=1.0, period=6, eta=0.1, sea_amp=0.05
     l1tf_fit = myl1tf.l1tf(mock['y_with_seasonal'], alpha=alpha, period=period, eta=eta, with_l1p=True)
 
     resid = l1tf_fit['x'] - mock['y_with_seasonal']
-    assert_is_good(resid, mean_resid_max=6e-4, mean_abs_resid_max=0.035, max_abs_resid_max=0.1)
+    assert_is_good(resid, mean_abs_resid_max=0.035, max_abs_resid_max=0.1)
 
     if doplot:
         lab = 'L1TF, period=%s, alpha=%s, eta=%s' % (period, alpha, eta)
@@ -187,7 +187,7 @@ def test_first_derivative_on_noisy_data(num=10, slope=1.0, offset=3.0, noise=1.0
     l1tf_fit = myl1tf.l1tf(y, alpha=alpha, beta=beta)
 
     resid = l1tf_fit['x'] - y
-    assert_is_good(resid, mean_resid_max=1e-12, mean_abs_resid_max=0.6, max_abs_resid_max=1)
+    assert_is_good(resid, mean_abs_resid_max=0.6, max_abs_resid_max=1)
 
     if doplot:
         plt.plot(i, y, marker='o', markersize=12, alpha=0.8, linestyle='')
