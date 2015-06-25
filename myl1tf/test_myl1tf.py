@@ -1,15 +1,14 @@
 import myl1tf
 import numpy as np
-from matplotlib import pylab as plt
 import cvxopt
 import matrix_utils as mu
 from l1_everything import l1_fit, l1_fit_monthly
 import time
 from l1 import l1
 from datetime import date
+from matplotlib import pylab as plt
 
 doplot = False
-
 
 def make_l1tf_mock(doplot=doplot, period=6, sea_amp=0.05, noise=0.0):
     np.random.seed(3733)
@@ -33,7 +32,6 @@ def make_l1tf_mock(doplot=doplot, period=6, sea_amp=0.05, noise=0.0):
         y_with_seasonal = y
 
     if doplot:
-
         plt.clf()
         lab ='True, period=%s' % period
         plt.plot(x, y, marker='o', linestyle='-', label=lab, markersize=8, alpha=0.3,color='blue')
@@ -77,7 +75,6 @@ def make_l1tf_mock2(doplot=doplot, period=6, sea_amp=0.05, noise=0.0, seed=3733)
         y_with_seasonal = y
 
     if doplot:
-
         plt.clf()
         lab='True, period=%s' % period
         plt.plot(x, y, marker='o', linestyle='-', label=lab, markersize=8, alpha=0.3,color='blue')
