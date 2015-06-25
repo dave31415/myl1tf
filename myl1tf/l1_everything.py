@@ -11,6 +11,7 @@ def l1_fit_monthly(dates, y, **kwargs):
     xx = mu.dates_to_index_monthly(dates)
     return l1_fit(xx, y, **kwargs)
 
+
 def l1_fit(index, y, beta_d2=1.0, beta_d1=1.0, beta_seasonal=1.0,
            beta_step=5.0, period=12, growth=0.0, step_permissives=None):
     assert isinstance(y, np.ndarray)
@@ -34,7 +35,7 @@ def l1_fit(index, y, beta_d2=1.0, beta_d1=1.0, beta_seasonal=1.0,
     zero = mu.zero_spmatrix
     ident = mu.identity_spmatrix
     gvec = spmatrix(growth, range(m), [0]*m)
-    zero_m = spmatrix(0.0, range(p), [0]*m)
+    zero_m = spmatrix(0.0, range(m), [0]*m)
     zero_p = spmatrix(0.0, range(p), [0]*p)
     zero_n = spmatrix(0.0, range(n), [0]*n)
 
