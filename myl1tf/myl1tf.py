@@ -5,6 +5,7 @@ import numpy as np
 solvers.options['show_progress'] = 0
 from matrix_utils import *
 
+
 def l1tf(y, alpha, period=0, eta=1.0, with_l1p=False, beta=0.0):
     # scaling things to standardized size
     y_min = float(y.min())
@@ -98,8 +99,8 @@ def l1tf_cvxopt_l1p(y, alpha, period=0, eta=1.0):
 
     if period > 1:
         B = get_B_matrix(n, period)
-        T=get_T_matrix(period)
-        Q=B*T
+        T = get_T_matrix(period)
+        Q = B*T
         DQ = D * Q
         G[2*m:2*m+period-1, :m] = DQ.T
         G[2*m+period-1:, :m] = -DQ.T
@@ -110,7 +111,7 @@ def l1tf_cvxopt_l1p(y, alpha, period=0, eta=1.0):
     nu = res['x']
     DT_nu = D.T * nu
 
-    output={}
+    output = {}
     output['y'] = y
     output['x_with_seasonal'] = y - DT_nu
     if period > 1:
