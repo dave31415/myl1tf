@@ -2,6 +2,7 @@ from itertools import chain
 from cvxopt import spmatrix, sparse, matrix
 import numpy as np
 
+
 def get_second_derivative_matrix(n):
     """
     :param n: The size of the time series
@@ -12,6 +13,7 @@ def get_second_derivative_matrix(n):
                  list(chain(*[[i] * 3 for i in xrange(m)])),
                  list(chain(*[[i, i + 1, i + 2] for i in xrange(m)])))
     return D
+
 
 def get_first_derivative_matrix(n):
     """
@@ -65,6 +67,7 @@ def get_step_function_matrix(n):
             if i < j:
                 step[i, j] = 1.0
     return step
+
 
 def get_first_derivative_matrix_nes(x):
     """
