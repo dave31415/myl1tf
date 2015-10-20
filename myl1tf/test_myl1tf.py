@@ -10,6 +10,7 @@ from matplotlib import pylab as plt
 
 doplot = False
 
+
 def make_l1tf_mock(doplot=doplot, period=6, sea_amp=0.05, noise=0.0):
     np.random.seed(3733)
     num = 100

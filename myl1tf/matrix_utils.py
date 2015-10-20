@@ -54,6 +54,7 @@ def get_second_derivative_matrix_nes(x):
                  list(chain(*[[i, i + 1, i + 2] for i in xrange(m)])))
     return D
 
+
 def get_step_function_matrix(n):
     """
     Upper/lower triangular with all ones
@@ -103,6 +104,7 @@ def spmatrix2np(spmat):
     :return: numpy 2D array of type float64
     """
     return np.asarray(matrix(spmat)).squeeze()
+
 
 def np2spmatrix(nparray):
     """
@@ -176,7 +178,7 @@ def get_B_matrix(n, period):
     for i in xrange(num_full_cycles):
         B[i*period:(i+1)*period, :] = identity_p
     #trim off excess
-    B=B[0:n, :]
+    B = B[0:n, :]
     return B
 
 
@@ -187,7 +189,6 @@ def get_B_matrix_nes(x, period):
     :return: B matrix which maps p -> S cyclically
     """
     x_min = min(x)
-    x_max = max(x)
     nx = len(x)
     index = (x-x_min) % period
     B = zero_spmatrix(nx, period)
@@ -224,32 +225,6 @@ def get_step_function_reg(n, beta_step, permissives=None):
             i, beta = point
             reg[i, i] = -beta
     return reg
-
-
-def dates_to_index1(dates):
-    #take an array of date objects and convert to an
-    #index with unit being the minimum difference between points
-    dynamic_range_max = 1e3
-    n = len(dates)
-    if n == 0:
-        raise ValueError("dates has zero length")
-    ordinals = np.array([date.toordinal() for date in dates])
-    ords = sorted(ordinals)
-    min_diff = 1e19
-    max_diff = -1e19
-    ord_min = min(ordinals)
-    for i in xrange(1, n):
-        diff = ords[i] - ords[i-1]
-        min_diff = min(min_diff, diff)
-        max_diff = max(max_diff, diff)
-    if min_diff == 0.0:
-        raise ValueError("Points cannot be duplicated")
-    dynamic_range = max_diff/min_diff
-    if dynamic_range > dynamic_range_max:
-        raise ValueError("dynamic_range %s too high, max=%s" % (dynamic_range, dynamic_range_max))
-    index = (ordinals - ord_min)/min_diff
-    index = index.round().astype('int64')
-    return index, ord_min, min_diff
 
 
 def date_to_index_monthly(date_in):
